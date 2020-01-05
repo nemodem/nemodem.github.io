@@ -111,18 +111,18 @@
 <meta name="keywords" content="java,redis,分布式">
 <meta property="og:type" content="article">
 <meta property="og:title" content="分布式之数据库和缓存双写一致性方案解析（摘录）">
-<meta property="og:url" content="http://yhd2615805.github.io/2019/09/13/cacheAndMysql_consistency/index.html">
+<meta property="og:url" content="http://nemodem.github.io/2019/09/13/cacheAndMysql_consistency/index.html">
 <meta property="og:site_name" content="Nemodem的博客">
 <meta property="og:description" content="引言 为什么写这篇文章？ 首先，缓存由于其高并发和高性能的特性，已经在项目中被广泛使用。在读取缓存方面，大家没啥疑问，都是按照下图的流程来进行业务操作。 ​         但是在更新缓存方面，对于更新完数据库，是更新缓存呢，还是删除缓存。又或者是先删除缓存，再更新数据库，其实大家存在很大的争议。目前没有一篇全面的博客，对这几种方案进行解析。于是博主战战兢兢，顶着被大家喷的风险，写了这篇文章。 文">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:image" content="http://yhd2615805.github.io/2019/09/13/cacheAndMysql_consistency/1.png">
-<meta property="og:image" content="http://yhd2615805.github.io/2019/09/13/cacheAndMysql_consistency/2.png">
-<meta property="og:image" content="http://yhd2615805.github.io/2019/09/13/cacheAndMysql_consistency/3.png">
+<meta property="og:image" content="http://nemodem.github.io/2019/09/13/cacheAndMysql_consistency/1.png">
+<meta property="og:image" content="http://nemodem.github.io/2019/09/13/cacheAndMysql_consistency/2.png">
+<meta property="og:image" content="http://nemodem.github.io/2019/09/13/cacheAndMysql_consistency/3.png">
 <meta property="og:updated_time" content="2019-09-13T07:45:35.283Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="分布式之数据库和缓存双写一致性方案解析（摘录）">
 <meta name="twitter:description" content="引言 为什么写这篇文章？ 首先，缓存由于其高并发和高性能的特性，已经在项目中被广泛使用。在读取缓存方面，大家没啥疑问，都是按照下图的流程来进行业务操作。 ​         但是在更新缓存方面，对于更新完数据库，是更新缓存呢，还是删除缓存。又或者是先删除缓存，再更新数据库，其实大家存在很大的争议。目前没有一篇全面的博客，对这几种方案进行解析。于是博主战战兢兢，顶着被大家喷的风险，写了这篇文章。 文">
-<meta name="twitter:image" content="http://yhd2615805.github.io/2019/09/13/cacheAndMysql_consistency/1.png">
+<meta name="twitter:image" content="http://nemodem.github.io/2019/09/13/cacheAndMysql_consistency/1.png">
 
 
 
@@ -130,7 +130,7 @@
 
   
   
-  <link rel="canonical" href="http://yhd2615805.github.io/2019/09/13/cacheAndMysql_consistency/">
+  <link rel="canonical" href="http://nemodem.github.io/2019/09/13/cacheAndMysql_consistency/">
 
 
 
@@ -367,7 +367,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yhd2615805.github.io/2019/09/13/cacheAndMysql_consistency/">
+    <link itemprop="mainEntityOfPage" href="http://nemodem.github.io/2019/09/13/cacheAndMysql_consistency/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="Nemo">
