@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha256-dABdfBfUoC8vJUBOwGVdm8L9qlMWaHTIfXt+7GnZCIo=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"nemodem.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.22.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="项目名称：后勤保障指挥系统项目部署环境：银河麒麟系统+myEclipse+mySql5.6+tomcat7+rabbitmq+基于ssm的公司框架+sip协议启动方式：        启功sip服务器：cd &#x2F;home&#x2F;wisdom&#x2F;build_mpms&#x2F;bin,.&#x2F;start.sh脚本一键全启，第一次开启需要chmod +x +脚本&#x2F;文">
+<meta property="og:type" content="article">
+<meta property="og:title" content="项目的一点总结">
+<meta property="og:url" content="http://nemodem.github.io/2025/08/06/%E9%A1%B9%E7%9B%AE%E7%9A%84%E4%B8%80%E7%82%B9%E6%80%BB%E7%BB%93/index.html">
+<meta property="og:site_name" content="Nemodem的博客">
+<meta property="og:description" content="项目名称：后勤保障指挥系统项目部署环境：银河麒麟系统+myEclipse+mySql5.6+tomcat7+rabbitmq+基于ssm的公司框架+sip协议启动方式：        启功sip服务器：cd &#x2F;home&#x2F;wisdom&#x2F;build_mpms&#x2F;bin,.&#x2F;start.sh脚本一键全启，第一次开启需要chmod +x +脚本&#x2F;文">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-08-06T13:02:08.393Z">
+<meta property="article:modified_time" content="2025-08-06T17:10:38.815Z">
+<meta property="article:author" content="Nemo">
+<meta property="article:tag" content="java">
+<meta property="article:tag" content="linux">
+<meta property="article:tag" content="ssm">
+<meta property="article:tag" content="rabbitmq">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://nemodem.github.io/2025/08/06/%E9%A1%B9%E7%9B%AE%E7%9A%84%E4%B8%80%E7%82%B9%E6%80%BB%E7%BB%93/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://nemodem.github.io/2025/08/06/%E9%A1%B9%E7%9B%AE%E7%9A%84%E4%B8%80%E7%82%B9%E6%80%BB%E7%BB%93/","path":"2025/08/06/项目的一点总结/","title":"项目的一点总结"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>项目的一点总结 | Nemodem的博客</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Nemodem的博客</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">愿你出走半生，归来仍是少年。</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-overview-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Nemo"
+      src="/images/head.jpg">
+  <p class="site-author-name" itemprop="name">Nemo</p>
+  <div class="site-description" itemprop="description">愿你出走半生，归来仍是少年。</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">9</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://nemodem.github.io/2025/08/06/%E9%A1%B9%E7%9B%AE%E7%9A%84%E4%B8%80%E7%82%B9%E6%80%BB%E7%BB%93/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/head.jpg">
+      <meta itemprop="name" content="Nemo">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Nemodem的博客">
+      <meta itemprop="description" content="愿你出走半生，归来仍是少年。">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="项目的一点总结 | Nemodem的博客">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          项目的一点总结
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-08-06 21:02:08" itemprop="dateCreated datePublished" datetime="2025-08-06T21:02:08+08:00">2025-08-06</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2025-08-07 01:10:38" itemprop="dateModified" datetime="2025-08-07T01:10:38+08:00">2025-08-07</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E9%A1%B9%E7%9B%AE%E5%BF%83%E5%BE%97/" itemprop="url" rel="index"><span itemprop="name">项目心得</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>1.5k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>5 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>项目名称：后勤保障指挥系统<br>项目部署环境：银河麒麟系统+myEclipse+mySql5.6+tomcat7+rabbitmq+基于ssm的公司框架+sip协议<br>启动方式：<br>        启功sip服务器：cd &#x2F;home&#x2F;wisdom&#x2F;build_mpms&#x2F;bin,.&#x2F;start.sh脚本一键全启，第一次开启需要chmod +x +脚本&#x2F;文件名称 进行授权。</p>
+<span id="more"></span>
+
+<p>​         需要对cd &#x2F;home&#x2F;wisdom&#x2F;build_mpms&#x2F;bin路径中的配置文件进行配置，将所有.ini 文件中的ip地址改成你要连接的服务器的地址，注意解除级联时的count&#x3D;0.<br>​        打开sc.log日志：tail -f &#x2F;tmp&#x2F;sc.log打开日志，里面有注册的信息（绿色字体)。<br>​        </p>
+<pre><code>    启动rabbitmq: cd /usr/local/rabbitmq-3.5.2/sbin,运行./rabbitmq-server -detached
+                   ps -ef|grep rabbitmq 观察是否有rabbitmq进程。
+    启动mysql:cd /usr/local/mysql/bin,当前路径下运行./mysqld_safe &amp;文件，符号代表后台运行。
+    启动服务：cd /usr/local/JavaApp/wd_msg_center/ 运行./run.sh debug
+             cd /usr/local/JavaApp/wd_mw_dal (data-access). ./run.sh debug
+             cd /usr/local/JavaApp/wd_svc_resource (source-dir) ./run.sh debug
+             cd /usr/local/JavaApp/wd_svc_authz (auth-service) ./run.sh debug
+             cd /usr/local/JavaApp/wd_svc_session (session-manager) ./run.sh debug
+             cd /usr/local/JavaApp/wd_agent_sip (sip-agent) ./run.sh debug
+             cd /usr/local/tomcat/bin  当前路径下运行./catalina.sh run
+             
+             这段是调试时使用，真正部署时后台启动就可以了。
+</code></pre>
+<p> 进入网址，http:&#x2F;&#x2F; +ip地址   如果tomcat启动成功，可以看到登陆界面，更改服务资源与当前服务节点（与你连接的服务器ip保持一致）<br>  如果一切顺利，安装技保终端，安装vs2015补丁就可以登陆了，（windows10安装补丁有错误，害我重新装的系统）<br>  注意银河麒麟桥接模式，需要用户与服务器都要在同一个ip频段才能去连接。<br>  我负责的是系统中的指挥业务模块，包括指挥组管理，指挥呼叫，临时添加非指挥组成员（在指挥过程中，下同），强退指挥组成员，指挥提醒，暂停指挥，专向指挥，协同指挥，授权指挥，接替指挥，越级指挥，临时指挥，呼叫组外人员，设置组播，调阅视频等等。<br>  说说我个人觉得的技术难点以及“坑”：首先的难点在于对业务流程的理解，比如接替指挥，授权指挥，因为指挥组的成员结构是我缓存中的数据，因此在业务发起后的成员结构是怎样的构成需要慢慢理解（文档上的用语太书面，理解时半猜半懂的，需要及时的沟通）。<br>  在理解业务后，编写的过程中要随时考虑系统的状态，以及你的缓存变化，还有接收通知或发送通知后的变化，任何的变化都有可能是你模块中的bug,如果你没有考虑的话。例如强退成员时，我们是将这个成员的某个状态字段更改，而不是直接将这个成员从这个缓存中删除，因此，在停止指挥时，我们要恢复原来的成员结构，被强退的成员需要在他的用户列表中看到原来的他所在的指挥组，这时在判断时（我需要与数据库中的原表比较，判断这个成员是增加的还是减少的）需要判断成员的状态，如果状态是剔除状态，要重新把他放入一个集合中，通过处理判断当前用户是否是原指挥组成员，是的就要在当前用户列表中显示这个组，不是就要删除这个组信息。<br>    一、<br>    for(SimpleUser simpleUser:members){<br>                &#x2F;&#x2F;表示删除的成员状态<br>    			if(!”2”.equals(simpleUser.getBizStatus())){<br>    				simpleIdList.add(simpleUser.getId());<br>    			}</p>
+<pre><code>二、
+//求差集，这不重要			
+changedIdList.addAll(memberIdsByData);
+changedIdList.retainAll(simpleIdList);
+memberIdsByData.removeAll(changedIdList);
+if(memberIdsByData.size() != 0)&#123;
+	for(String memberId:memberIdsByData)&#123;
+        //在缓存中添加组信息
+		addGroupCache(memberId, groupWithMembers);
+	&#125;
+&#125;
+simpleIdList.removeAll(changedIdList);
+if(simpleIdList.size() != 0)&#123;
+	for(String memberId:simpleIdList)&#123;
+        //删除这个缓存中的这个组信息
+		deleteGroupCache(memberId, directGroup.getId());
+	&#125;
+&#125;
+</code></pre>
+<p>  还有缓存的维护虽然没什么难点，但是逻辑要清晰，细节很重要，否则有的bug真的欲仙欲死，debug时那叫一个酸爽……<br>  有一个坑我印象很深刻，因为那天第三方测试，忙了一宿，系统的服务都已部署在生产环境中，大家都很紧张，偏偏我的业务（就是那个强退成员）无法实现，报了异常（json转换异常，很奇怪）可是我们自测时在本地运行时业务是没有问题的，我又加了一夜的班（悲催），找到原因，由于之前的一个接口没有用上，但考虑以后扩展，就一直没有注释掉，偏偏它的uri地址与强退成员接口的uri一模一样，导致在生产环境中根本没有扫描到我的强退成员接口，报异常也就不奇怪了。在我注释掉那个扩展接口后，系统正常。<br>  <em>再说说这个项目的动态信息同步以及静态信息同步策略，先说动态信息同步，动态信息同步采用订阅-发布级联模型实现，在SIP标准规范上，PUBLISH和SUBSCRIBE&#x2F;NOTIFY为两种不同的事务，在动态信息同步中必须依据订阅-发布级联模型的时序图实现，需先SUBSCRIBE订阅，后续才使用PUBLISH事务。在此项目中，第一次订阅的节点需全量同步（NOTIFY和PUBLISH均全量），后续均增量同步（NOTIFY和PUBLISH均增量）。静态信息同步（路由信息同步）使用LDAP,即静态信息管理（LDAP）中节点信息可实现路由信息同步，生成全局路由表且支持更新。</em><br>  总之，这个项目比较大，我还是很庆幸能有这样的机会去参加这样的项目，这个项目技术不算新，但是很考验个人的基础知识以及对细节的把握，同时与众多不同领域的程序员对接程序让我对整个系统有了全面的了解，纠正了很多之前的不规范的编程习惯，先写这么多，有补充还会继续更新。<br>​<br>​        </p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/java/" rel="tag"># java</a>
+              <a href="/tags/linux/" rel="tag"># linux</a>
+              <a href="/tags/ssm/" rel="tag"># ssm</a>
+              <a href="/tags/rabbitmq/" rel="tag"># rabbitmq</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2025/08/06/openldap%E5%AE%89%E8%A3%85/" rel="prev" title="openldap安装">
+                  <i class="fa fa-angle-left"></i> openldap安装
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">nemo</span>
+  </div>
+  <div id="days"></div>
+<script>
+function show_date_time(){
+    window.setTimeout("show_date_time()", 1000);
+    BirthDay=new Date("05/25/2019 15:13:14");//修改为自己的blog建站时间
+    today=new Date();
+    timeold=(today.getTime()-BirthDay.getTime());
+    sectimeold=timeold/1000
+    secondsold=Math.floor(sectimeold);
+    msPerDay=24*60*60*1000
+    e_daysold=timeold/msPerDay
+    daysold=Math.floor(e_daysold);
+    e_hrsold=(e_daysold-daysold)*24;
+    hrsold=setzero(Math.floor(e_hrsold));
+    e_minsold=(e_hrsold-hrsold)*60;
+    minsold=setzero(Math.floor((e_hrsold-hrsold)*60));
+    seconds=setzero(Math.floor((e_minsold-minsold)*60));
+    document.getElementById('days').innerHTML="本站已安全运行"+daysold+"天"+hrsold+"小时"+minsold+"分"+seconds+"秒";
+}
+function setzero(i){
+    if (i<10)
+    {i="0" + i};
+    return i;
+}
+show_date_time();
+</script>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">13k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">45 分钟</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <!--<div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>-->
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/nemodem" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

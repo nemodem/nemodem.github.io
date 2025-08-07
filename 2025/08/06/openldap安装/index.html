@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha256-dABdfBfUoC8vJUBOwGVdm8L9qlMWaHTIfXt+7GnZCIo=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"nemodem.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.22.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="轻型目录访问协议（英文：Lightweight Directory Access Protocol，缩写：LDAP）是一个开放的，中立的，工业标准的应用协议，通过IP协议提供访问控制和维护分布式信息的目录信息。OpenLDAP是轻型目录访问协议（Lightweight Directory Access Protocol，LDAP）的自由和开源的实现，在其OpenLDAP许可证下发行，并已经被包含在">
+<meta property="og:type" content="article">
+<meta property="og:title" content="openldap安装">
+<meta property="og:url" content="http://nemodem.github.io/2025/08/06/openldap%E5%AE%89%E8%A3%85/index.html">
+<meta property="og:site_name" content="Nemodem的博客">
+<meta property="og:description" content="轻型目录访问协议（英文：Lightweight Directory Access Protocol，缩写：LDAP）是一个开放的，中立的，工业标准的应用协议，通过IP协议提供访问控制和维护分布式信息的目录信息。OpenLDAP是轻型目录访问协议（Lightweight Directory Access Protocol，LDAP）的自由和开源的实现，在其OpenLDAP许可证下发行，并已经被包含在">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-08-06T13:02:08.391Z">
+<meta property="article:modified_time" content="2025-08-06T17:10:43.933Z">
+<meta property="article:author" content="Nemo">
+<meta property="article:tag" content="linux">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://nemodem.github.io/2025/08/06/openldap%E5%AE%89%E8%A3%85/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://nemodem.github.io/2025/08/06/openldap%E5%AE%89%E8%A3%85/","path":"2025/08/06/openldap安装/","title":"openldap安装"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>openldap安装 | Nemodem的博客</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Nemodem的博客</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">愿你出走半生，归来仍是少年。</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1%E3%80%81%E5%AE%89%E8%A3%85openssl"><span class="nav-number">1.</span> <span class="nav-text">1、安装openssl</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2%E3%80%81%E5%AE%89%E8%A3%85BerkeleyDB"><span class="nav-number">2.</span> <span class="nav-text">2、安装BerkeleyDB</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3%E3%80%81%E5%AE%89%E8%A3%85openldap"><span class="nav-number">3.</span> <span class="nav-text">3、安装openldap</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A1%A5%E5%85%85%EF%BC%9Alinux%E6%BA%90%E7%A0%81%E5%AE%89%E8%A3%85%E7%9A%84%E4%B8%89%E6%AD%A5%E6%9B%B2"><span class="nav-number">4.</span> <span class="nav-text">补充：linux源码安装的三步曲</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Nemo"
+      src="/images/head.jpg">
+  <p class="site-author-name" itemprop="name">Nemo</p>
+  <div class="site-description" itemprop="description">愿你出走半生，归来仍是少年。</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">9</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://nemodem.github.io/2025/08/06/openldap%E5%AE%89%E8%A3%85/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/head.jpg">
+      <meta itemprop="name" content="Nemo">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Nemodem的博客">
+      <meta itemprop="description" content="愿你出走半生，归来仍是少年。">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="openldap安装 | Nemodem的博客">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          openldap安装
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-08-06 21:02:08" itemprop="dateCreated datePublished" datetime="2025-08-06T21:02:08+08:00">2025-08-06</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2025-08-07 01:10:43" itemprop="dateModified" datetime="2025-08-07T01:10:43+08:00">2025-08-07</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B7%A5%E5%85%B7%E4%B8%8E%E7%BB%84%E4%BB%B6/" itemprop="url" rel="index"><span itemprop="name">工具与组件</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>1.9k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>6 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p><strong>轻型目录访问协议</strong>（英文：Lightweight Directory Access Protocol，缩写：LDAP）是一个开放的，中立的，工业标准的应用协议，通过IP协议提供访问控制和维护分布式信息的目录信息。<br>OpenLDAP是轻型目录访问协议（Lightweight Directory Access Protocol，LDAP）的自由和开源的实现，在其OpenLDAP许可证下发行，并已经被包含在众多流行的Linux发行版中。</p>
+<span id="more"></span>
+
+<p><strong>可以这样讲</strong>：市面上只要你能够想像得到的所有工具软件，全部都支持LDAP协议。比如说你公司要安装一个项目管理工具，那么这个工具几乎必然支持LDAP协议，你公司要安装一个bug管理工具，这工具必然也支持LDAP协议，你公司要安装一套软件版本管理工具，这工具也必然支持LDAP协议。LDAP协议的好处就是你公司的所有员工在所有这些工具里共享同一套用户名和密码，来人的时候新增一个用户就能自动访问所有系统，走人的时候一键删除就取消了他对所有系统的访问权限，这就是LDAP。</p>
+<hr>
+<p>这几天由于项目需要，经理让我研究一下openldap,写一个连接openldap以及实现与openldap数据交互的SDK。之前从来没有接触过openldap,所以我想从安装做起，做一个记录，不多说了，下面是步骤：<br>我用的是银河麒麟系统，内核是ubuntu的,首先要将用户转为root权限,下面开始安装。</p>
+<h2 id="1、安装openssl"><a href="#1、安装openssl" class="headerlink" title="1、安装openssl"></a>1、安装openssl</h2><p>安装openldap前提是已经安装好openssl和BerkeleyDB,我们先来安装openssl(这个虽然系统自带，但是最好不要卸载，重新安装一个，卸载之后很多服务可能起不来)<br>下载地址：<a target="_blank" rel="noopener" href="https://www.openssl.org/source/">https://www.openssl.org/source/</a><br>之后解压</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tar -zxvf +压缩包名</span><br></pre></td></tr></table></figure>
+
+<p>进入文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cd 文件名</span><br></pre></td></tr></table></figure>
+
+<p>执行命令</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">./config shared  #注意这里是用./config 会安装到/usr/local/ssl</span><br><span class="line"></span><br><span class="line">make</span><br><span class="line"></span><br><span class="line">make install</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>配置库文件搜索路径</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">echo &quot;/usr/local/ssl/lib&quot; &gt;&gt; /etc/ld.so.conf</span><br><span class="line"></span><br><span class="line">ldconfig -V</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>这2句的作用就是通知系统Berkeley DB的动态链接库在&#x2F;usr&#x2F;local&#x2F;berkeleydb&#x2F;lib&#x2F;目录。</p>
+<ul>
+<li><strong>配置&#x2F;etc&#x2F;ld.so.conf文件</strong></li>
+</ul>
+<p>ld.so.conf文件配置了需要读入告诉缓存中的动态函数库所在目录 重新配置ld.so.conf后，在命令行执行ldconfig命令生效该软件默认是安装在&#x2F;usr&#x2F;local&#x2F;BerkeleyDB.4.2目录下。安装完成后，要把&#x2F;usr&#x2F;local&#x2F;BerkeleyDB.4.2&#x2F;lib的库路径加到&#x2F;etc&#x2F;ld.so.conf文件内，添加完成后执行一次ldconfig，使配置文件生效。这样编译openldap时才能找到相应的库文件。</p>
+<ul>
+<li><strong>ld.so.conf是什么东西？</strong></li>
+</ul>
+<p>它就是系统动态链接库的配置文件。此文件内,存放着可被LINUX共享的动态链接库所在目录的名字(系统目录&#x2F;lib,&#x2F;usr&#x2F;lib除外)，各个目录名间以空白字符(空格，换行等)或冒号或逗号分隔。一般的LINUX发行版中，此文件均含一个共享目录&#x2F;usr&#x2F;X11R6&#x2F;lib，为X window窗口系统的动态链接库所在的目录。 ldconfig是它的管理命令，具体操作方法可查询man手册</p>
+<ul>
+<li><strong>ldconfig是什么</strong></li>
+</ul>
+<p>它是一个程序，通常它位于&#x2F;sbin下，是root用户使用的东东。具体作用及用法可以man ldconfig查到<br>简单的说，它的作用就是将&#x2F;etc&#x2F;ld.so.conf列出的路径下的库文件 缓存到&#x2F;etc&#x2F;ld.so.cache 以供使用<br>因此当安装完一些库文件，(例如刚安装好glib)，或者修改ld.so.conf增加新的库路径后，需要运行一下&#x2F;sbin&#x2F;ldconfig<br>使所有的库文件都被缓存到ld.so.cache中，如果没做，即使库文件明明就在&#x2F;usr&#x2F;lib下的，也是不会被使用的，结果编译过程中抱错，缺少xxx库，去查看发现明明就在那放着……</p>
+<h2 id="2、安装BerkeleyDB"><a href="#2、安装BerkeleyDB" class="headerlink" title="2、安装BerkeleyDB"></a>2、安装BerkeleyDB</h2><p>下载地址： <a target="_blank" rel="noopener" href="http://www.oracle.com/technetwork/database/databasetechnologies/berkeleydb/downloads/index-082944.html">http://www.oracle.com/technet...</a>（注意要根据openldap的README文件中的内容下载合适的版本下面是一段原文，在下载时一定要注意！）</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">SLAPD:</span><br><span class="line">            BDB and HDB backends require Oracle Berkeley DB 4.4 - 4.8,</span><br><span class="line">            or 5.0 - 5.1.  It is highly recommended to apply the</span><br><span class="line">            patches from Oracle for a given release.</span><br></pre></td></tr></table></figure>
+
+<p>之后执行命令</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">tar -zxvf +压缩包名</span><br><span class="line">cd 文件名</span><br><span class="line">cd build_unix</span><br><span class="line">../dist/configure --prefix=/usr/local/berkeleydb --enable-cxx  #其中–enable-cxx就是编译C++库，这样才能编译Berkeley DB数据库的PHP扩展php_db4。</span><br><span class="line">make</span><br><span class="line">make install</span><br><span class="line">echo &#x27;/usr/local/berkeleydb/lib/&#x27; &gt;&gt; /etc/ld.so.conf</span><br><span class="line">ldconfig #添加完成后执行一次ldconfig，使配置文件生效。这样编译openldap时才能找到相应的库文件。</span><br><span class="line">ldconfig -V</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="3、安装openldap"><a href="#3、安装openldap" class="headerlink" title="3、安装openldap"></a>3、安装openldap</h2><p>终于进入正题，下载地址：<a target="_blank" rel="noopener" href="http://www.openldap.org/software/download/">http://www.openldap.org/softw...</a><br>之后执行命令</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">tar -zxvf +压缩包名</span><br><span class="line">cd 文件名</span><br><span class="line">env CPPFLAGS=&quot;-I/usr/local/berkeleydb/include&quot; LDFLAGS=&quot;-L/usr/local/berkeleydb/lib&quot; LD_LIBRARY_PATH=&quot;/usr/local/berkeleydb/lib&quot;  ./configure --prefix=/usr/local/openldap --enable-ldbm --enable-overlays --enable-ldap --enable-accesslog  --enable-syncprov   </span><br></pre></td></tr></table></figure>
+
+<p><strong>注意以上配置语句，要设置资料库的include和lib路径，否则在配置到资料库相关内容时会提示Berkeley DB版本不兼容，并中断配置。如果没有–enable-ldbm选项，在make test时会提示ldbm找不到。为了减少出错，还是加上为好。后面的几个参数是为了使用openldap的同步协议，必须在编译阶段强制开启如下的编译选项，其中-enable-ldap 选项用于支持ldap代理，在同步中用来推送数据；–enable-accesslog 选项用于记录用户操作，在同步中用于记录服务端的数据修改；–enable-syncprov 选项用于支持数据同步引擎。</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">make depend</span><br><span class="line">make</span><br><span class="line">make test # (在make test阶段要花费较长时间进行测试，好像有16项吧。可以放在那里等，自己做其他事情，不过成与不成就看这下的了，如果没问题就可安装了)</span><br><span class="line">make install</span><br></pre></td></tr></table></figure>
+
+<p>配置库文件搜索路径</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">echo &quot;/usr/local/openldap/lib&quot; &gt;&gt; /etc/ld.so.conf</span><br><span class="line">ldconfig -V</span><br></pre></td></tr></table></figure>
+
+<p>说说这里的坑吧，第一次装这个东西，网上的资料要么对新人不太友好，要么就是过时的资料，还有就是本身就是错误的，总之安装挺不容易的，我具体说说吧，一个就是刚才我写到的，之前装的BerkeleyDB版本太高，导致在装openldap时提示BerkeleyDB不可用，后来装了适合的版本，又提示版本不匹配，google后在*.&#x2F;configure*之前添加</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">LD_LIBRARY_PATH=&quot;/usr/local/berkeleydb/lib&quot;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>好不容易可以执行下一步了，在make test 时又测试失败，原来动态连接库出问题了，没有设置正确，导致运行时的库文件没能找到,所以要检查环境变量.LD_LIBRARY_PATH中一定要有系统的以及bdb的环境库文件位置.之前可能直接复制的，没有看路径导致的错误……总之“惊喜”不断，不过最后还是安装成功了，先喘口气，后面还有更大的考验……</p>
+<h2 id="补充：linux源码安装的三步曲"><a href="#补充：linux源码安装的三步曲" class="headerlink" title="补充：linux源码安装的三步曲"></a>补充：linux源码安装的三步曲</h2><p>从源码安装程序时,需要依此执行以下步骤:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">./configure</span><br><span class="line">make</span><br><span class="line">make install</span><br><span class="line">他们的含义:</span><br></pre></td></tr></table></figure>
+
+<p>这些都是典型的使用GNU的AUTOCONF和AUTOMAKE产生的程序的安装步骤。<br>.&#x2F;configure是用来检测你的安装平台的目标特征的。比如它会检测你是不是有CC或GCC，并不是需要CC或GCC，它是个shell脚本<br>make是用来编译的，它从Makefile中读取指令，然后编译。<br>make install是用来安装的，它也从Makefile中读取指令，安装到指定的位置。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/linux/" rel="tag"># linux</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2025/08/06/%E5%85%B3%E4%BA%8Emybatis%E5%88%86%E9%A1%B5%E5%B7%A5%E5%85%B7%E5%BC%82%E5%B8%B8%E7%9A%84%E8%A7%A3%E5%86%B3%E5%8A%9E%E6%B3%95/" rel="prev" title="关于mybatis分页工具异常的解决办法">
+                  <i class="fa fa-angle-left"></i> 关于mybatis分页工具异常的解决办法
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2025/08/06/%E9%A1%B9%E7%9B%AE%E7%9A%84%E4%B8%80%E7%82%B9%E6%80%BB%E7%BB%93/" rel="next" title="项目的一点总结">
+                  项目的一点总结 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">nemo</span>
+  </div>
+  <div id="days"></div>
+<script>
+function show_date_time(){
+    window.setTimeout("show_date_time()", 1000);
+    BirthDay=new Date("05/25/2019 15:13:14");//修改为自己的blog建站时间
+    today=new Date();
+    timeold=(today.getTime()-BirthDay.getTime());
+    sectimeold=timeold/1000
+    secondsold=Math.floor(sectimeold);
+    msPerDay=24*60*60*1000
+    e_daysold=timeold/msPerDay
+    daysold=Math.floor(e_daysold);
+    e_hrsold=(e_daysold-daysold)*24;
+    hrsold=setzero(Math.floor(e_hrsold));
+    e_minsold=(e_hrsold-hrsold)*60;
+    minsold=setzero(Math.floor((e_hrsold-hrsold)*60));
+    seconds=setzero(Math.floor((e_minsold-minsold)*60));
+    document.getElementById('days').innerHTML="本站已安全运行"+daysold+"天"+hrsold+"小时"+minsold+"分"+seconds+"秒";
+}
+function setzero(i){
+    if (i<10)
+    {i="0" + i};
+    return i;
+}
+show_date_time();
+</script>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">13k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">45 分钟</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <!--<div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>-->
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/nemodem" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
