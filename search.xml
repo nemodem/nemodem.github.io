@@ -1,29 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>关于Myeclipse2017 MemoryAnalyzer的安装</title>
-    <url>/2025/08/06/MAT_Install/</url>
-    <content><![CDATA[<p>最近想要安装MemoryAnalyzer（MAT）这个性能分析工具的插件，本以为网上教程那么多，教我一个技术一般的人足够了，我安装的是Myeclipse2017，可是在网上翻了一圈，大多数的Myeclipse教程都是10版本的，我呢，不想在论坛上问（没耐心…）,突然想到了自己当初装svn插件时的事情，类比一下是不是也可以呢？步骤如下：</p>
-<span id="more"></span>
-
-<p>首先下载MemoryAnalyzer插件（这个一样）<br><a href="http://www.eclipse.org/mat/downloads.php">http://www.eclipse.org/mat/do...</a><br>点击Archived Update Site后面的压缩包</p>
-<img src="/2025/08/06/MAT_Install/bVbczqP.webp" class="" title="说明">
-
-<p>解压之后如图：</p>
-<img src="/2025/08/06/MAT_Install/bVbczrl.webp" class="" title="说明">
-<p>将feature与binary中的文件拷入myeclipse的feature中，将plugins中的文件拷入myeclipse的plugins中，然后<br>重启myeclipse<br>如下图</p>
-<img src="/2025/08/06/MAT_Install/bVbczrP.webp" class="" title="说明">
-<p>表示安装成功。<br>进入windows-preference中可以看到MemoryAnalyzer</p>
-]]></content>
-      <categories>
-        <category>工具与组件</category>
-      </categories>
-      <tags>
-        <tag>java</tag>
-        <tag>内存分析</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>MemoryAnalyzer补充</title>
     <url>/2025/08/06/MAT_complement/</url>
     <content><![CDATA[<p><strong>首先</strong>，之前在网上下载的是Myeclipse的插件 –memory analyzer，在网站的下面是Memory Analyzer的单机版，单机版安装简单，适合日常操作。下载地址：<a href="http://www.eclipse.org/mat/downloads.php">http://www.eclipse.org/mat/do...</a><br>之前一直纠结如何获取一个Java项目的内存分析的hprof文件，网上找了很多博客都是一笔带过（这个很容易？！），最后可能是搜索恰当,用JVM指令:</p>
@@ -66,81 +43,50 @@
       </tags>
   </entry>
   <entry>
-    <title>分布式之数据库和缓存双写一致性方案解析（摘录）</title>
-    <url>/2025/08/06/cacheAndMysql_consistency/</url>
-    <content><![CDATA[<p><strong>引言</strong></p>
-<p><strong>为什么写这篇文章？</strong></p>
-<p>首先，缓存由于其高并发和高性能的特性，已经在项目中被广泛使用。在读取缓存方面，大家没啥疑问，都是按照下图的流程来进行业务操作。</p>
+    <title>关于Myeclipse2017 MemoryAnalyzer的安装</title>
+    <url>/2025/08/06/MAT_Install/</url>
+    <content><![CDATA[<p>最近想要安装MemoryAnalyzer（MAT）这个性能分析工具的插件，本以为网上教程那么多，教我一个技术一般的人足够了，我安装的是Myeclipse2017，可是在网上翻了一圈，大多数的Myeclipse教程都是10版本的，我呢，不想在论坛上问（没耐心…）,突然想到了自己当初装svn插件时的事情，类比一下是不是也可以呢？步骤如下：</p>
 <span id="more"></span>
 
-<p>​        <img src="/2025/08/06/cacheAndMysql_consistency/1.png" class="" title="说明"></p>
-<p>但是在更新缓存方面，对于更新完数据库，是更新缓存呢，还是删除缓存。又或者是先删除缓存，再更新数据库，其实大家存在很大的争议。目前没有一篇全面的博客，对这几种方案进行解析。于是博主战战兢兢，顶着被大家喷的风险，写了这篇文章。</p>
-<p><strong>文章结构</strong></p>
-<p>本文由以下三个部分组成<br>1、讲解缓存更新策略<br>2、对每种策略进行缺点分析<br>3、针对缺点给出改进方案</p>
-<p><strong>正文</strong></p>
-<p>先做一个说明，从理论上来说，给缓存设置过期时间，是保证最终一致性的解决方案。这种方案下，我们可以对存入缓存的数据设置过期时间，所有的写操作以数据库为准，对缓存操作只是尽最大努力即可。也就是说如果数据库写成功，缓存更新失败，那么只要到达过期时间，则后面的读请求自然会从数据库中读取新值然后回填缓存。因此，接下来讨论的思路不依赖于给缓存设置过期时间这个方案。<br>在这里，我们讨论<strong>三种</strong>更新策略：</p>
-<ol>
-<li><p>先更新数据库，再更新缓存</p>
-</li>
-<li><p>先删除缓存，再更新数据库</p>
-</li>
-<li><p>先更新数据库，再删除缓存</p>
-</li>
-</ol>
-<p>应该没人问我，为什么没有先更新缓存，再更新数据库这种策略。</p>
-<p><strong>(1)</strong> <strong>先更新数据库，再更新缓存</strong></p>
-<p>这套方案，大家是普遍反对的。为什么呢？有如下两点原因。<br><strong>原因一（线程安全角度）</strong><br>同时有请求A和请求B进行更新操作，那么会出现<br>（1）线程A更新了数据库<br>（2）线程B更新了数据库<br>（3）线程B更新了缓存<br>（4）线程A更新了缓存<br>这就出现请求A更新缓存应该比请求B更新缓存早才对，但是因为网络等原因，B却比A更早更新了缓存。这就导致了脏数据，因此不考虑。<br><strong>原因二（业务场景角度）</strong><br>有如下两点：<br>（1）如果你是一个写数据库场景比较多，而读数据场景比较少的业务需求，采用这种方案就会导致，数据压根还没读到，缓存就被频繁的更新，浪费性能。<br>（2）如果你写入数据库的值，并不是直接写入缓存的，而是要经过一系列复杂的计算再写入缓存。那么，每次写入数据库后，都再次计算写入缓存的值，无疑是浪费性能的。显然，删除缓存更为适合。</p>
-<p>接下来讨论的就是争议最大的，先删缓存，再更新数据库。还是先更新数据库，再删缓存的问题。</p>
-<p><strong>(2)</strong> <strong>先删缓存，再更新数据库</strong></p>
-<p>该方案会导致不一致的原因是。同时有一个请求A进行更新操作，另一个请求B进行查询操作。那么会出现如下情形:<br>（1）请求A进行写操作，删除缓存<br>（2）请求B查询发现缓存不存在<br>（3）请求B去数据库查询得到旧值<br>（4）请求B将旧值写入缓存<br>（5）请求A将新值写入数据库<br>上述情况就会导致不一致的情形出现。而且，如果不采用给缓存设置过期时间策略，该数据永远都是脏数据。<br>那么，<strong>如何解决呢？</strong> <strong>采用延时双删策略</strong><br>伪代码如下</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">public void write(String key,Object data)&#123;</span><br><span class="line">	redis.delKey(key);</span><br><span class="line"> 	db.updateData(data);</span><br><span class="line">	Thread.sleep(1000);</span><br><span class="line">	redis.delKey(key);</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+<p>首先下载MemoryAnalyzer插件（这个一样）<br><a href="http://www.eclipse.org/mat/downloads.php">http://www.eclipse.org/mat/do...</a><br>点击Archived Update Site后面的压缩包</p>
+<img src="/2025/08/06/MAT_Install/bVbczqP.webp" class="" title="说明">
 
-<p>转化为中文描述就是<br>（1）先淘汰缓存<br>（2）再写数据库（这两步和原来一样）<br>（3）休眠1秒，再次淘汰缓存<br>这么做，可以将1秒内所造成的缓存脏数据，再次删除。<br><strong>那么，这个1秒怎么确定的，具体该休眠多久呢？</strong><br>针对上面的情形，读者应该自行评估自己的项目的读数据业务逻辑的耗时。然后写数据的休眠时间则在读数据业务逻辑的耗时基础上，加几百ms即可。这么做的目的，就是确保读请求结束，写请求可以删除读请求造成的缓存脏数据。<br><strong>如果你用了mysql的读写分离架构怎么办？</strong><br>ok，在这种情况下，造成数据不一致的原因如下，还是两个请求，一个请求A进行更新操作，另一个请求B进行查询操作。<br>（1）请求A进行写操作，删除缓存<br>（2）请求A将数据写入数据库了，<br>（3）请求B查询缓存发现，缓存没有值<br>（4）请求B去从库查询，这时，还没有完成主从同步，因此查询到的是旧值<br>（5）请求B将旧值写入缓存<br>（6）数据库完成主从同步，从库变为新值<br>上述情形，就是数据不一致的原因。还是使用双删延时策略。只是，睡眠时间修改为在主从同步的延时时间基础上，加几百ms。<br><strong>采用这种同步淘汰策略，吞吐量降低怎么办？</strong><br>ok，那就将第二次删除作为异步的。自己起一个线程，异步删除。这样，写的请求就不用沉睡一段时间后了，再返回。这么做，加大吞吐量。<br><strong>第二次删除,如果删除失败怎么办？</strong><br>这是个非常好的问题，因为第二次删除失败，就会出现如下情形。还是有两个请求，一个请求A进行更新操作，另一个请求B进行查询操作，为了方便，假设是单库：<br>（1）请求A进行写操作，删除缓存<br>（2）请求B查询发现缓存不存在<br>（3）请求B去数据库查询得到旧值<br>（4）请求B将旧值写入缓存<br>（5）请求A将新值写入数据库<br>（6）请求A试图去删除请求B写入对缓存值，结果失败了。<br>ok,这也就是说。如果第二次删除缓存失败，会再次出现缓存和数据库不一致的问题。<br><strong>如何解决呢？</strong><br>具体解决方案，且看博主对第(3)种更新策略的解析。</p>
-<p><strong>(3)</strong> <strong>先更新数据库，再删缓存</strong></p>
-<p>首先，先说一下。老外提出了一个缓存更新套路，名为<a href="https://docs.microsoft.com/en-us/azure/architecture/patterns/cache-aside">《Cache-Asidepattern》</a>。其中就指出</p>
-<p>·       <strong>失效</strong>：应用程序先从cache取数据，没有得到，则从数据库中取数据，成功后，放到缓存中。</p>
-<p>·       <strong>命中</strong>：应用程序从cache中取数据，取到后返回。</p>
-<p>·       <strong>更新</strong>：先把数据存到数据库中，成功后，再让缓存失效。</p>
-<p>另外，知名社交网站facebook也在论文</p>
-<p><a href="https://www.usenix.org/system/files/conference/nsdi13/nsdi13-final170_update.pdf">《ScalingMemcache at Facebook》</a></p>
-<p>中提出，他们用的也是先更新数据库，再删缓存的策略。</p>
-<p>这种情况不存在并发问题么？</p>
-<p>不是的。假设这会有两个请求，一个请求A做查询操作，一个请求B做更新操作，那么会有如下情形产生<br>（1）缓存刚好失效<br>（2）请求A查询数据库，得一个旧值<br>（3）请求B将新值写入数据库<br>（4）请求B删除缓存<br>（5）请求A将查到的旧值写入缓存<br>ok，如果发生上述情况，确实是会发生脏数据。</p>
-<p>然而，发生这种情况的概率又有多少呢？</p>
-<p>发生上述情况有一个先天性条件，就是步骤（3）的写数据库操作比步骤（2）的读数据库操作耗时更短，才有可能使得步骤（4）先于步骤（5）。可是，大家想想，数据库的读操作的速度远快于写操作的（不然做读写分离干嘛，做读写分离的意义就是因为读操作比较快，耗资源少），因此步骤（3）耗时比步骤（2）更短，这一情形很难出现。<br>假设，有人非要抬杠，有强迫症，一定要解决怎么办？</p>
-<p>如何解决上述并发问题？</p>
-<p>首先，给缓存设有效时间是一种方案。其次，采用策略（2）里给出的异步延时删除策略，保证读请求完成以后，再进行删除操作。</p>
-<p>还有其他造成不一致的原因么？</p>
-<p>有的，这也是缓存更新策略（2）和缓存更新策略（3）都存在的一个问题，如果删缓存失败了怎么办，那不是会有不一致的情况出现么。比如一个写数据请求，然后写入数据库了，删缓存失败了，这会就出现不一致的情况了。这也是缓存更新策略（2）里留下的最后一个疑问。</p>
-<p>如何解决？</p>
-<p>提供一个保障的重试机制即可，这里给出两套方案。</p>
-<p> <strong>方案一</strong>：</p>
-<p>如下图所示：</p>
- <img src="/2025/08/06/cacheAndMysql_consistency/2.png" class="" title="说明">
-
-<p>流程如下所示</p>
-<p>（1）更新数据库数据；</p>
-<p>（2）缓存因为种种问题删除失败</p>
-<p>（3）将需要删除的key发送至消息队列</p>
-<p>（4）自己消费消息，获得需要删除的key</p>
-<p>（5）继续重试删除操作，直到成功</p>
-<p>然而，该方案有一个缺点，对业务线代码造成大量的侵入。于是有了方案二，在方案二中，启动一个订阅程序去订阅数据库的binlog，获得需要操作的数据。在应用程序中，另起一段程序，获得这个订阅程序传来的信息，进行删除缓存操作。</p>
-<p><strong>方案二</strong>：</p>
-<img src="/2025/08/06/cacheAndMysql_consistency/3.png" class="" title="说明">
-
-<p>流程如下图所示：<br>（1）更新数据库数据<br>（2）数据库会将操作信息写入binlog日志当中<br>（3）订阅程序提取出所需要的数据以及key<br>（4）另起一段非业务代码，获得该信息<br>（5）尝试删除缓存操作，发现删除失败<br>（6）将这些信息发送至消息队列<br>（7）重新从消息队列中获得该数据，重试操作。</p>
-<p>**备注说明：**上述的订阅binlog程序在mysql中有现成的中间件叫canal，可以完成订阅binlog日志的功能。至于oracle中，博主目前不知道有没有现成中间件可以使用。另外，重试机制，博主是采用的是消息队列的方式。如果对一致性要求不是很高，直接在程序中另起一个线程，每隔一段时间去重试即可，这些大家可以灵活自由发挥，只是提供一个思路。</p>
-<p><strong>总结</strong></p>
-<p>本文其实是对目前互联网中已有的一致性方案，进行了一个总结。对于先删缓存，再更新数据库的更新策略，还有方案提出维护一个内存队列的方式，博主看了一下，觉得实现异常复杂，没有必要，因此没有必要在文中给出。最后，希望大家有所收获。</p>
+<p>解压之后如图：</p>
+<img src="/2025/08/06/MAT_Install/bVbczrl.webp" class="" title="说明">
+<p>将feature与binary中的文件拷入myeclipse的feature中，将plugins中的文件拷入myeclipse的plugins中，然后<br>重启myeclipse<br>如下图</p>
+<img src="/2025/08/06/MAT_Install/bVbczrP.webp" class="" title="说明">
+<p>表示安装成功。<br>进入windows-preference中可以看到MemoryAnalyzer</p>
 ]]></content>
       <categories>
-        <category>缓存</category>
+        <category>工具与组件</category>
       </categories>
       <tags>
         <tag>java</tag>
-        <tag>redis</tag>
-        <tag>分布式</tag>
+        <tag>内存分析</tag>
       </tags>
+  </entry>
+  <entry>
+    <title>Hello World</title>
+    <url>/2025/08/06/hello-world/</url>
+    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
+<span id="more"></span>
+
+<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
+<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
+<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
+<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/deployment.html">Deployment</a></p>
+]]></content>
+      <categories>
+        <category>其他</category>
+      </categories>
   </entry>
   <entry>
     <title>Hexo博客设置以及Next主题美化</title>
@@ -401,28 +347,80 @@
       </tags>
   </entry>
   <entry>
-    <title>关于mybatis分页工具异常的解决办法</title>
-    <url>/2025/08/06/%E5%85%B3%E4%BA%8Emybatis%E5%88%86%E9%A1%B5%E5%B7%A5%E5%85%B7%E5%BC%82%E5%B8%B8%E7%9A%84%E8%A7%A3%E5%86%B3%E5%8A%9E%E6%B3%95/</url>
-    <content><![CDATA[<p><em>异常名称：</em> <em><strong>Could not find method oninterface org.apache.ibatis.executor.statement.</strong></em></p>
-<p><strong>引起异常的原因：</strong></p>
-<p>在PagePlugins.java的代码中：</p>
-<p>3.4.0之前分页</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Intercepts(value =&#123;@Signature(type = StatementHandler.class, method = &quot;prepare&quot;,args = &#123;Connection.class&#125;)&#125;) //3.40之前的写法</span><br></pre></td></tr></table></figure>
-
+    <title>分布式之数据库和缓存双写一致性方案解析（摘录）</title>
+    <url>/2025/08/06/cacheAndMysql_consistency/</url>
+    <content><![CDATA[<p><strong>引言</strong></p>
+<p><strong>为什么写这篇文章？</strong></p>
+<p>首先，缓存由于其高并发和高性能的特性，已经在项目中被广泛使用。在读取缓存方面，大家没啥疑问，都是按照下图的流程来进行业务操作。</p>
 <span id="more"></span>
 
-<p>3.4.0之后分页</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Intercepts(value = &#123;@Signature(type = StatementHandler.class, method = &quot;prepare&quot;,</span><br><span class="line"> args = &#123;Connection.class,Integer.class&#125;)&#125;)  //3.40之后的写法</span><br></pre></td></tr></table></figure>
+<p>​        <img src="/2025/08/06/cacheAndMysql_consistency/1.png" class="" title="说明"></p>
+<p>但是在更新缓存方面，对于更新完数据库，是更新缓存呢，还是删除缓存。又或者是先删除缓存，再更新数据库，其实大家存在很大的争议。目前没有一篇全面的博客，对这几种方案进行解析。于是博主战战兢兢，顶着被大家喷的风险，写了这篇文章。</p>
+<p><strong>文章结构</strong></p>
+<p>本文由以下三个部分组成<br>1、讲解缓存更新策略<br>2、对每种策略进行缺点分析<br>3、针对缺点给出改进方案</p>
+<p><strong>正文</strong></p>
+<p>先做一个说明，从理论上来说，给缓存设置过期时间，是保证最终一致性的解决方案。这种方案下，我们可以对存入缓存的数据设置过期时间，所有的写操作以数据库为准，对缓存操作只是尽最大努力即可。也就是说如果数据库写成功，缓存更新失败，那么只要到达过期时间，则后面的读请求自然会从数据库中读取新值然后回填缓存。因此，接下来讨论的思路不依赖于给缓存设置过期时间这个方案。<br>在这里，我们讨论<strong>三种</strong>更新策略：</p>
+<ol>
+<li><p>先更新数据库，再更新缓存</p>
+</li>
+<li><p>先删除缓存，再更新数据库</p>
+</li>
+<li><p>先更新数据库，再删除缓存</p>
+</li>
+</ol>
+<p>应该没人问我，为什么没有先更新缓存，再更新数据库这种策略。</p>
+<p><strong>(1)</strong> <strong>先更新数据库，再更新缓存</strong></p>
+<p>这套方案，大家是普遍反对的。为什么呢？有如下两点原因。<br><strong>原因一（线程安全角度）</strong><br>同时有请求A和请求B进行更新操作，那么会出现<br>（1）线程A更新了数据库<br>（2）线程B更新了数据库<br>（3）线程B更新了缓存<br>（4）线程A更新了缓存<br>这就出现请求A更新缓存应该比请求B更新缓存早才对，但是因为网络等原因，B却比A更早更新了缓存。这就导致了脏数据，因此不考虑。<br><strong>原因二（业务场景角度）</strong><br>有如下两点：<br>（1）如果你是一个写数据库场景比较多，而读数据场景比较少的业务需求，采用这种方案就会导致，数据压根还没读到，缓存就被频繁的更新，浪费性能。<br>（2）如果你写入数据库的值，并不是直接写入缓存的，而是要经过一系列复杂的计算再写入缓存。那么，每次写入数据库后，都再次计算写入缓存的值，无疑是浪费性能的。显然，删除缓存更为适合。</p>
+<p>接下来讨论的就是争议最大的，先删缓存，再更新数据库。还是先更新数据库，再删缓存的问题。</p>
+<p><strong>(2)</strong> <strong>先删缓存，再更新数据库</strong></p>
+<p>该方案会导致不一致的原因是。同时有一个请求A进行更新操作，另一个请求B进行查询操作。那么会出现如下情形:<br>（1）请求A进行写操作，删除缓存<br>（2）请求B查询发现缓存不存在<br>（3）请求B去数据库查询得到旧值<br>（4）请求B将旧值写入缓存<br>（5）请求A将新值写入数据库<br>上述情况就会导致不一致的情形出现。而且，如果不采用给缓存设置过期时间策略，该数据永远都是脏数据。<br>那么，<strong>如何解决呢？</strong> <strong>采用延时双删策略</strong><br>伪代码如下</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">public void write(String key,Object data)&#123;</span><br><span class="line">	redis.delKey(key);</span><br><span class="line"> 	db.updateData(data);</span><br><span class="line">	Thread.sleep(1000);</span><br><span class="line">	redis.delKey(key);</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
 
-<p><strong>多了一个Interger.class的参数</strong></p>
-<p>原链接：<a href="http://www.cnblogs.com/EasonJim/p/7056700.html">http://www.cnblogs.com/EasonJim/p/7056700.html</a></p>
+<p>转化为中文描述就是<br>（1）先淘汰缓存<br>（2）再写数据库（这两步和原来一样）<br>（3）休眠1秒，再次淘汰缓存<br>这么做，可以将1秒内所造成的缓存脏数据，再次删除。<br><strong>那么，这个1秒怎么确定的，具体该休眠多久呢？</strong><br>针对上面的情形，读者应该自行评估自己的项目的读数据业务逻辑的耗时。然后写数据的休眠时间则在读数据业务逻辑的耗时基础上，加几百ms即可。这么做的目的，就是确保读请求结束，写请求可以删除读请求造成的缓存脏数据。<br><strong>如果你用了mysql的读写分离架构怎么办？</strong><br>ok，在这种情况下，造成数据不一致的原因如下，还是两个请求，一个请求A进行更新操作，另一个请求B进行查询操作。<br>（1）请求A进行写操作，删除缓存<br>（2）请求A将数据写入数据库了，<br>（3）请求B查询缓存发现，缓存没有值<br>（4）请求B去从库查询，这时，还没有完成主从同步，因此查询到的是旧值<br>（5）请求B将旧值写入缓存<br>（6）数据库完成主从同步，从库变为新值<br>上述情形，就是数据不一致的原因。还是使用双删延时策略。只是，睡眠时间修改为在主从同步的延时时间基础上，加几百ms。<br><strong>采用这种同步淘汰策略，吞吐量降低怎么办？</strong><br>ok，那就将第二次删除作为异步的。自己起一个线程，异步删除。这样，写的请求就不用沉睡一段时间后了，再返回。这么做，加大吞吐量。<br><strong>第二次删除,如果删除失败怎么办？</strong><br>这是个非常好的问题，因为第二次删除失败，就会出现如下情形。还是有两个请求，一个请求A进行更新操作，另一个请求B进行查询操作，为了方便，假设是单库：<br>（1）请求A进行写操作，删除缓存<br>（2）请求B查询发现缓存不存在<br>（3）请求B去数据库查询得到旧值<br>（4）请求B将旧值写入缓存<br>（5）请求A将新值写入数据库<br>（6）请求A试图去删除请求B写入对缓存值，结果失败了。<br>ok,这也就是说。如果第二次删除缓存失败，会再次出现缓存和数据库不一致的问题。<br><strong>如何解决呢？</strong><br>具体解决方案，且看博主对第(3)种更新策略的解析。</p>
+<p><strong>(3)</strong> <strong>先更新数据库，再删缓存</strong></p>
+<p>首先，先说一下。老外提出了一个缓存更新套路，名为<a href="https://docs.microsoft.com/en-us/azure/architecture/patterns/cache-aside">《Cache-Asidepattern》</a>。其中就指出</p>
+<p>·       <strong>失效</strong>：应用程序先从cache取数据，没有得到，则从数据库中取数据，成功后，放到缓存中。</p>
+<p>·       <strong>命中</strong>：应用程序从cache中取数据，取到后返回。</p>
+<p>·       <strong>更新</strong>：先把数据存到数据库中，成功后，再让缓存失效。</p>
+<p>另外，知名社交网站facebook也在论文</p>
+<p><a href="https://www.usenix.org/system/files/conference/nsdi13/nsdi13-final170_update.pdf">《ScalingMemcache at Facebook》</a></p>
+<p>中提出，他们用的也是先更新数据库，再删缓存的策略。</p>
+<p>这种情况不存在并发问题么？</p>
+<p>不是的。假设这会有两个请求，一个请求A做查询操作，一个请求B做更新操作，那么会有如下情形产生<br>（1）缓存刚好失效<br>（2）请求A查询数据库，得一个旧值<br>（3）请求B将新值写入数据库<br>（4）请求B删除缓存<br>（5）请求A将查到的旧值写入缓存<br>ok，如果发生上述情况，确实是会发生脏数据。</p>
+<p>然而，发生这种情况的概率又有多少呢？</p>
+<p>发生上述情况有一个先天性条件，就是步骤（3）的写数据库操作比步骤（2）的读数据库操作耗时更短，才有可能使得步骤（4）先于步骤（5）。可是，大家想想，数据库的读操作的速度远快于写操作的（不然做读写分离干嘛，做读写分离的意义就是因为读操作比较快，耗资源少），因此步骤（3）耗时比步骤（2）更短，这一情形很难出现。<br>假设，有人非要抬杠，有强迫症，一定要解决怎么办？</p>
+<p>如何解决上述并发问题？</p>
+<p>首先，给缓存设有效时间是一种方案。其次，采用策略（2）里给出的异步延时删除策略，保证读请求完成以后，再进行删除操作。</p>
+<p>还有其他造成不一致的原因么？</p>
+<p>有的，这也是缓存更新策略（2）和缓存更新策略（3）都存在的一个问题，如果删缓存失败了怎么办，那不是会有不一致的情况出现么。比如一个写数据请求，然后写入数据库了，删缓存失败了，这会就出现不一致的情况了。这也是缓存更新策略（2）里留下的最后一个疑问。</p>
+<p>如何解决？</p>
+<p>提供一个保障的重试机制即可，这里给出两套方案。</p>
+<p> <strong>方案一</strong>：</p>
+<p>如下图所示：</p>
+ <img src="/2025/08/06/cacheAndMysql_consistency/2.png" class="" title="说明">
+
+<p>流程如下所示</p>
+<p>（1）更新数据库数据；</p>
+<p>（2）缓存因为种种问题删除失败</p>
+<p>（3）将需要删除的key发送至消息队列</p>
+<p>（4）自己消费消息，获得需要删除的key</p>
+<p>（5）继续重试删除操作，直到成功</p>
+<p>然而，该方案有一个缺点，对业务线代码造成大量的侵入。于是有了方案二，在方案二中，启动一个订阅程序去订阅数据库的binlog，获得需要操作的数据。在应用程序中，另起一段程序，获得这个订阅程序传来的信息，进行删除缓存操作。</p>
+<p><strong>方案二</strong>：</p>
+<img src="/2025/08/06/cacheAndMysql_consistency/3.png" class="" title="说明">
+
+<p>流程如下图所示：<br>（1）更新数据库数据<br>（2）数据库会将操作信息写入binlog日志当中<br>（3）订阅程序提取出所需要的数据以及key<br>（4）另起一段非业务代码，获得该信息<br>（5）尝试删除缓存操作，发现删除失败<br>（6）将这些信息发送至消息队列<br>（7）重新从消息队列中获得该数据，重试操作。</p>
+<p>**备注说明：**上述的订阅binlog程序在mysql中有现成的中间件叫canal，可以完成订阅binlog日志的功能。至于oracle中，博主目前不知道有没有现成中间件可以使用。另外，重试机制，博主是采用的是消息队列的方式。如果对一致性要求不是很高，直接在程序中另起一个线程，每隔一段时间去重试即可，这些大家可以灵活自由发挥，只是提供一个思路。</p>
+<p><strong>总结</strong></p>
+<p>本文其实是对目前互联网中已有的一致性方案，进行了一个总结。对于先删缓存，再更新数据库的更新策略，还有方案提出维护一个内存队列的方式，博主看了一下，觉得实现异常复杂，没有必要，因此没有必要在文中给出。最后，希望大家有所收获。</p>
 ]]></content>
       <categories>
-        <category>mybatis</category>
+        <category>缓存</category>
       </categories>
       <tags>
         <tag>java</tag>
-        <tag>分页</tag>
+        <tag>redis</tag>
+        <tag>分布式</tag>
       </tags>
   </entry>
   <entry>
@@ -481,81 +479,6 @@
         <tag>java</tag>
         <tag>Maven工程</tag>
         <tag>微服务</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Hello World</title>
-    <url>/2025/08/06/hello-world/</url>
-    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
-<span id="more"></span>
-
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/deployment.html">Deployment</a></p>
-]]></content>
-      <categories>
-        <category>其他</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>项目的一点总结</title>
-    <url>/2025/08/06/%E9%A1%B9%E7%9B%AE%E7%9A%84%E4%B8%80%E7%82%B9%E6%80%BB%E7%BB%93/</url>
-    <content><![CDATA[<p>项目名称：后勤保障指挥系统<br>项目部署环境：银河麒麟系统+myEclipse+mySql5.6+tomcat7+rabbitmq+基于ssm的公司框架+sip协议<br>启动方式：<br>        启功sip服务器：cd &#x2F;home&#x2F;wisdom&#x2F;build_mpms&#x2F;bin,.&#x2F;start.sh脚本一键全启，第一次开启需要chmod +x +脚本&#x2F;文件名称 进行授权。</p>
-<span id="more"></span>
-
-<p>​         需要对cd &#x2F;home&#x2F;wisdom&#x2F;build_mpms&#x2F;bin路径中的配置文件进行配置，将所有.ini 文件中的ip地址改成你要连接的服务器的地址，注意解除级联时的count&#x3D;0.<br>​        打开sc.log日志：tail -f &#x2F;tmp&#x2F;sc.log打开日志，里面有注册的信息（绿色字体)。<br>​        </p>
-<pre><code>    启动rabbitmq: cd /usr/local/rabbitmq-3.5.2/sbin,运行./rabbitmq-server -detached
-                   ps -ef|grep rabbitmq 观察是否有rabbitmq进程。
-    启动mysql:cd /usr/local/mysql/bin,当前路径下运行./mysqld_safe &amp;文件，符号代表后台运行。
-    启动服务：cd /usr/local/JavaApp/wd_msg_center/ 运行./run.sh debug
-             cd /usr/local/JavaApp/wd_mw_dal (data-access). ./run.sh debug
-             cd /usr/local/JavaApp/wd_svc_resource (source-dir) ./run.sh debug
-             cd /usr/local/JavaApp/wd_svc_authz (auth-service) ./run.sh debug
-             cd /usr/local/JavaApp/wd_svc_session (session-manager) ./run.sh debug
-             cd /usr/local/JavaApp/wd_agent_sip (sip-agent) ./run.sh debug
-             cd /usr/local/tomcat/bin  当前路径下运行./catalina.sh run
-             
-             这段是调试时使用，真正部署时后台启动就可以了。
-</code></pre>
-<p> 进入网址，http:&#x2F;&#x2F; +ip地址   如果tomcat启动成功，可以看到登陆界面，更改服务资源与当前服务节点（与你连接的服务器ip保持一致）<br>  如果一切顺利，安装技保终端，安装vs2015补丁就可以登陆了，（windows10安装补丁有错误，害我重新装的系统）<br>  注意银河麒麟桥接模式，需要用户与服务器都要在同一个ip频段才能去连接。<br>  我负责的是系统中的指挥业务模块，包括指挥组管理，指挥呼叫，临时添加非指挥组成员（在指挥过程中，下同），强退指挥组成员，指挥提醒，暂停指挥，专向指挥，协同指挥，授权指挥，接替指挥，越级指挥，临时指挥，呼叫组外人员，设置组播，调阅视频等等。<br>  说说我个人觉得的技术难点以及“坑”：首先的难点在于对业务流程的理解，比如接替指挥，授权指挥，因为指挥组的成员结构是我缓存中的数据，因此在业务发起后的成员结构是怎样的构成需要慢慢理解（文档上的用语太书面，理解时半猜半懂的，需要及时的沟通）。<br>  在理解业务后，编写的过程中要随时考虑系统的状态，以及你的缓存变化，还有接收通知或发送通知后的变化，任何的变化都有可能是你模块中的bug,如果你没有考虑的话。例如强退成员时，我们是将这个成员的某个状态字段更改，而不是直接将这个成员从这个缓存中删除，因此，在停止指挥时，我们要恢复原来的成员结构，被强退的成员需要在他的用户列表中看到原来的他所在的指挥组，这时在判断时（我需要与数据库中的原表比较，判断这个成员是增加的还是减少的）需要判断成员的状态，如果状态是剔除状态，要重新把他放入一个集合中，通过处理判断当前用户是否是原指挥组成员，是的就要在当前用户列表中显示这个组，不是就要删除这个组信息。<br>    一、<br>    for(SimpleUser simpleUser:members){<br>                &#x2F;&#x2F;表示删除的成员状态<br>    			if(!”2”.equals(simpleUser.getBizStatus())){<br>    				simpleIdList.add(simpleUser.getId());<br>    			}</p>
-<pre><code>二、
-//求差集，这不重要			
-changedIdList.addAll(memberIdsByData);
-changedIdList.retainAll(simpleIdList);
-memberIdsByData.removeAll(changedIdList);
-if(memberIdsByData.size() != 0)&#123;
-	for(String memberId:memberIdsByData)&#123;
-        //在缓存中添加组信息
-		addGroupCache(memberId, groupWithMembers);
-	&#125;
-&#125;
-simpleIdList.removeAll(changedIdList);
-if(simpleIdList.size() != 0)&#123;
-	for(String memberId:simpleIdList)&#123;
-        //删除这个缓存中的这个组信息
-		deleteGroupCache(memberId, directGroup.getId());
-	&#125;
-&#125;
-</code></pre>
-<p>  还有缓存的维护虽然没什么难点，但是逻辑要清晰，细节很重要，否则有的bug真的欲仙欲死，debug时那叫一个酸爽……<br>  有一个坑我印象很深刻，因为那天第三方测试，忙了一宿，系统的服务都已部署在生产环境中，大家都很紧张，偏偏我的业务（就是那个强退成员）无法实现，报了异常（json转换异常，很奇怪）可是我们自测时在本地运行时业务是没有问题的，我又加了一夜的班（悲催），找到原因，由于之前的一个接口没有用上，但考虑以后扩展，就一直没有注释掉，偏偏它的uri地址与强退成员接口的uri一模一样，导致在生产环境中根本没有扫描到我的强退成员接口，报异常也就不奇怪了。在我注释掉那个扩展接口后，系统正常。<br>  <em>再说说这个项目的动态信息同步以及静态信息同步策略，先说动态信息同步，动态信息同步采用订阅-发布级联模型实现，在SIP标准规范上，PUBLISH和SUBSCRIBE&#x2F;NOTIFY为两种不同的事务，在动态信息同步中必须依据订阅-发布级联模型的时序图实现，需先SUBSCRIBE订阅，后续才使用PUBLISH事务。在此项目中，第一次订阅的节点需全量同步（NOTIFY和PUBLISH均全量），后续均增量同步（NOTIFY和PUBLISH均增量）。静态信息同步（路由信息同步）使用LDAP,即静态信息管理（LDAP）中节点信息可实现路由信息同步，生成全局路由表且支持更新。</em><br>  总之，这个项目比较大，我还是很庆幸能有这样的机会去参加这样的项目，这个项目技术不算新，但是很考验个人的基础知识以及对细节的把握，同时与众多不同领域的程序员对接程序让我对整个系统有了全面的了解，纠正了很多之前的不规范的编程习惯，先写这么多，有补充还会继续更新。<br>​<br>​        </p>
-]]></content>
-      <categories>
-        <category>项目心得</category>
-      </categories>
-      <tags>
-        <tag>java</tag>
-        <tag>ssm</tag>
-        <tag>linux</tag>
-        <tag>rabbitmq</tag>
       </tags>
   </entry>
   <entry>
@@ -621,6 +544,83 @@ if(simpleIdList.size() != 0)&#123;
       </categories>
       <tags>
         <tag>linux</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>项目的一点总结</title>
+    <url>/2025/08/06/%E9%A1%B9%E7%9B%AE%E7%9A%84%E4%B8%80%E7%82%B9%E6%80%BB%E7%BB%93/</url>
+    <content><![CDATA[<p>项目名称：后勤保障指挥系统<br>项目部署环境：银河麒麟系统+myEclipse+mySql5.6+tomcat7+rabbitmq+基于ssm的公司框架+sip协议<br>启动方式：<br>        启功sip服务器：cd &#x2F;home&#x2F;wisdom&#x2F;build_mpms&#x2F;bin,.&#x2F;start.sh脚本一键全启，第一次开启需要chmod +x +脚本&#x2F;文件名称 进行授权。</p>
+<span id="more"></span>
+
+<p>​         需要对cd &#x2F;home&#x2F;wisdom&#x2F;build_mpms&#x2F;bin路径中的配置文件进行配置，将所有.ini 文件中的ip地址改成你要连接的服务器的地址，注意解除级联时的count&#x3D;0.<br>​        打开sc.log日志：tail -f &#x2F;tmp&#x2F;sc.log打开日志，里面有注册的信息（绿色字体)。<br>​        </p>
+<pre><code>    启动rabbitmq: cd /usr/local/rabbitmq-3.5.2/sbin,运行./rabbitmq-server -detached
+                   ps -ef|grep rabbitmq 观察是否有rabbitmq进程。
+    启动mysql:cd /usr/local/mysql/bin,当前路径下运行./mysqld_safe &amp;文件，符号代表后台运行。
+    启动服务：cd /usr/local/JavaApp/wd_msg_center/ 运行./run.sh debug
+             cd /usr/local/JavaApp/wd_mw_dal (data-access). ./run.sh debug
+             cd /usr/local/JavaApp/wd_svc_resource (source-dir) ./run.sh debug
+             cd /usr/local/JavaApp/wd_svc_authz (auth-service) ./run.sh debug
+             cd /usr/local/JavaApp/wd_svc_session (session-manager) ./run.sh debug
+             cd /usr/local/JavaApp/wd_agent_sip (sip-agent) ./run.sh debug
+             cd /usr/local/tomcat/bin  当前路径下运行./catalina.sh run
+             
+             这段是调试时使用，真正部署时后台启动就可以了。
+</code></pre>
+<p> 进入网址，http:&#x2F;&#x2F; +ip地址   如果tomcat启动成功，可以看到登陆界面，更改服务资源与当前服务节点（与你连接的服务器ip保持一致）<br>  如果一切顺利，安装技保终端，安装vs2015补丁就可以登陆了，（windows10安装补丁有错误，害我重新装的系统）<br>  注意银河麒麟桥接模式，需要用户与服务器都要在同一个ip频段才能去连接。<br>  我负责的是系统中的指挥业务模块，包括指挥组管理，指挥呼叫，临时添加非指挥组成员（在指挥过程中，下同），强退指挥组成员，指挥提醒，暂停指挥，专向指挥，协同指挥，授权指挥，接替指挥，越级指挥，临时指挥，呼叫组外人员，设置组播，调阅视频等等。<br>  说说我个人觉得的技术难点以及“坑”：首先的难点在于对业务流程的理解，比如接替指挥，授权指挥，因为指挥组的成员结构是我缓存中的数据，因此在业务发起后的成员结构是怎样的构成需要慢慢理解（文档上的用语太书面，理解时半猜半懂的，需要及时的沟通）。<br>  在理解业务后，编写的过程中要随时考虑系统的状态，以及你的缓存变化，还有接收通知或发送通知后的变化，任何的变化都有可能是你模块中的bug,如果你没有考虑的话。例如强退成员时，我们是将这个成员的某个状态字段更改，而不是直接将这个成员从这个缓存中删除，因此，在停止指挥时，我们要恢复原来的成员结构，被强退的成员需要在他的用户列表中看到原来的他所在的指挥组，这时在判断时（我需要与数据库中的原表比较，判断这个成员是增加的还是减少的）需要判断成员的状态，如果状态是剔除状态，要重新把他放入一个集合中，通过处理判断当前用户是否是原指挥组成员，是的就要在当前用户列表中显示这个组，不是就要删除这个组信息。<br>    一、<br>    for(SimpleUser simpleUser:members){<br>                &#x2F;&#x2F;表示删除的成员状态<br>    			if(!”2”.equals(simpleUser.getBizStatus())){<br>    				simpleIdList.add(simpleUser.getId());<br>    			}</p>
+<pre><code>二、
+//求差集，这不重要			
+changedIdList.addAll(memberIdsByData);
+changedIdList.retainAll(simpleIdList);
+memberIdsByData.removeAll(changedIdList);
+if(memberIdsByData.size() != 0)&#123;
+	for(String memberId:memberIdsByData)&#123;
+        //在缓存中添加组信息
+		addGroupCache(memberId, groupWithMembers);
+	&#125;
+&#125;
+simpleIdList.removeAll(changedIdList);
+if(simpleIdList.size() != 0)&#123;
+	for(String memberId:simpleIdList)&#123;
+        //删除这个缓存中的这个组信息
+		deleteGroupCache(memberId, directGroup.getId());
+	&#125;
+&#125;
+</code></pre>
+<p>  还有缓存的维护虽然没什么难点，但是逻辑要清晰，细节很重要，否则有的bug真的欲仙欲死，debug时那叫一个酸爽……<br>  有一个坑我印象很深刻，因为那天第三方测试，忙了一宿，系统的服务都已部署在生产环境中，大家都很紧张，偏偏我的业务（就是那个强退成员）无法实现，报了异常（json转换异常，很奇怪）可是我们自测时在本地运行时业务是没有问题的，我又加了一夜的班（悲催），找到原因，由于之前的一个接口没有用上，但考虑以后扩展，就一直没有注释掉，偏偏它的uri地址与强退成员接口的uri一模一样，导致在生产环境中根本没有扫描到我的强退成员接口，报异常也就不奇怪了。在我注释掉那个扩展接口后，系统正常。<br>  <em>再说说这个项目的动态信息同步以及静态信息同步策略，先说动态信息同步，动态信息同步采用订阅-发布级联模型实现，在SIP标准规范上，PUBLISH和SUBSCRIBE&#x2F;NOTIFY为两种不同的事务，在动态信息同步中必须依据订阅-发布级联模型的时序图实现，需先SUBSCRIBE订阅，后续才使用PUBLISH事务。在此项目中，第一次订阅的节点需全量同步（NOTIFY和PUBLISH均全量），后续均增量同步（NOTIFY和PUBLISH均增量）。静态信息同步（路由信息同步）使用LDAP,即静态信息管理（LDAP）中节点信息可实现路由信息同步，生成全局路由表且支持更新。</em><br>  总之，这个项目比较大，我还是很庆幸能有这样的机会去参加这样的项目，这个项目技术不算新，但是很考验个人的基础知识以及对细节的把握，同时与众多不同领域的程序员对接程序让我对整个系统有了全面的了解，纠正了很多之前的不规范的编程习惯，先写这么多，有补充还会继续更新。<br>​<br>​        </p>
+]]></content>
+      <categories>
+        <category>项目心得</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>linux</tag>
+        <tag>ssm</tag>
+        <tag>rabbitmq</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>关于mybatis分页工具异常的解决办法</title>
+    <url>/2025/08/06/%E5%85%B3%E4%BA%8Emybatis%E5%88%86%E9%A1%B5%E5%B7%A5%E5%85%B7%E5%BC%82%E5%B8%B8%E7%9A%84%E8%A7%A3%E5%86%B3%E5%8A%9E%E6%B3%95/</url>
+    <content><![CDATA[<p><em>异常名称：</em> <em><strong>Could not find method oninterface org.apache.ibatis.executor.statement.</strong></em></p>
+<p><strong>引起异常的原因：</strong></p>
+<p>在PagePlugins.java的代码中：</p>
+<p>3.4.0之前分页</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Intercepts(value =&#123;@Signature(type = StatementHandler.class, method = &quot;prepare&quot;,args = &#123;Connection.class&#125;)&#125;) //3.40之前的写法</span><br></pre></td></tr></table></figure>
+
+<span id="more"></span>
+
+<p>3.4.0之后分页</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Intercepts(value = &#123;@Signature(type = StatementHandler.class, method = &quot;prepare&quot;,</span><br><span class="line"> args = &#123;Connection.class,Integer.class&#125;)&#125;)  //3.40之后的写法</span><br></pre></td></tr></table></figure>
+
+<p><strong>多了一个Interger.class的参数</strong></p>
+<p>原链接：<a href="http://www.cnblogs.com/EasonJim/p/7056700.html">http://www.cnblogs.com/EasonJim/p/7056700.html</a></p>
+]]></content>
+      <categories>
+        <category>mybatis</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>分页</tag>
       </tags>
   </entry>
 </search>
