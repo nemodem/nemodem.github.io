@@ -1,352 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>MemoryAnalyzer补充</title>
-    <url>/2025/08/06/MAT_complement/</url>
-    <content><![CDATA[<p><strong>首先</strong>，之前在网上下载的是Myeclipse的插件 –memory analyzer，在网站的下面是Memory Analyzer的单机版，单机版安装简单，适合日常操作。下载地址：<a href="http://www.eclipse.org/mat/downloads.php">http://www.eclipse.org/mat/do...</a><br>之前一直纠结如何获取一个Java项目的内存分析的hprof文件，网上找了很多博客都是一笔带过（这个很容易？！），最后可能是搜索恰当,用JVM指令:</p>
-<span id="more"></span>
-
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">jmap -dump:format=b,file=文件名.hprof[pid]</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>导出内存信息文件，然后利用Memory Analyzer工具打开进行内存分析（对于内存泄露，OOM等分析有很大的帮助）。</p>
-<h2 id="分析三步曲"><a href="#分析三步曲" class="headerlink" title="分析三步曲"></a><strong>分析三步曲</strong></h2><p>通常我们都会采用下面的“三步曲”来分析内存泄露问题：</p>
-<ul>
-<li>首先，对问题发生时刻的系统内存状态获取一个整体印象。</li>
-<li>第二步，找到最有可能导致内存泄露的元凶，通常也就是消耗内存最多的对象</li>
-<li>接下来，进一步去查看这个内存消耗大户的具体情况，看看是否有什么异常的行为。</li>
-</ul>
-<p>下面将用一个基本的例子来展示如何采用“三步曲”来查看生产的分析报告。</p>
-<h2 id="查看报告之一：内存消耗的整体状况"><a href="#查看报告之一：内存消耗的整体状况" class="headerlink" title="查看报告之一：内存消耗的整体状况"></a>查看报告之一：内存消耗的整体状况</h2><p>图 7. 内存泄露分析报告</p>
-<img src="/2025/08/06/MAT_complement/bVbcR3y.webp" class="" title="说明">
-
-<p>如图 7 所示，在报告上最醒目的就是一张简洁明了的饼图，从图上我们可以清晰地看到一个可疑对象消耗了系统 99% 的内存。在图的下方还有对这个可疑对象的进一步描述。我们可以看到内存是由<strong>java.util.Vectorcom.ibm.oti.vm.BootstrapClassLoader</strong> 负责这个对象的加载。这段描述非常短，但我相信您已经可以从中找到很多线索了，比如是哪个类占用了绝大多数的内存，它属于哪个组件等等。<br>接下来，我们应该进一步去分析问题，为什么一个 Vector 会占据了系统 99% 的内存，谁阻止了垃圾回收机制对它的回收。</p>
-<h2 id="查看报告之二：分析问题的所在"><a href="#查看报告之二：分析问题的所在" class="headerlink" title="查看报告之二：分析问题的所在"></a>查看报告之二：分析问题的所在</h2><p>首先我们简单回顾下 JAVA 的内存回收机制，内存空间中垃圾回收的工作由垃圾回收器 (<strong>Garbage Collector,GC</strong>) 完成的，它的核心思想是：对虚拟机可用内存空间，即堆空间中的对象进行识别，如果对象正在被引用，那么称其为存活对象，反之，如果对象不再被引用，则为垃圾对象，可以回收其占据的空间，用于再分配。<br>在垃圾回收机制中有一组元素被称为根元素集合，它们是一组被虚拟机直接引用的对象，比如，正在运行的线程对象，系统调用栈里面的对象以及被 <strong>system class loader</strong> 所加载的那些对象。堆空间中的每个对象都是由一个根元素为起点被层层调用的。因此，一个对象还被某一个存活的根元素所引用，就会被认为是存活对象，不能被回收，进行内存释放。因此，我们可以通过分析一个对象到根元素的引用路径来分析为什么该对象不能被顺利回收。如果说一个对象已经不被任何程序逻辑所需要但是还存在被根元素引用的情况，我们可以说这里存在内存泄露。<br>现在，让我们开始真正的寻找内存泄露之旅，点击“Details ”链接，可以看到如图 8 所示对可疑对象 1 的详细分析报告。<br>图 8. 可疑对象 1 的详细分析报告</p>
-<img src="/2025/08/06/MAT_complement/bVbcR3L.webp" class="" title="说明">
-
-<p>我们查看下从 GC 根元素到内存消耗聚集点的最短路径：<br>图 9. 从根元素到内存消耗聚集点的最短路径</p>
-<img src="/2025/08/06/MAT_complement/bVbcR3V.webp" class="" title="说明">
-
-<p>我们可以很清楚的看到整个引用链，内存聚集点是一个拥有大量对象的集合，如果你对代码比较熟悉的话，相信这些信息应该能给你提供一些找到内存泄露的思路了。<br>接下来，我们再继续看看，这个对象集合里到底存放了什么，为什么会消耗掉如此多的内存。<br>图 10. 内存消耗聚集对象信息</p>
-<img src="/2025/08/06/MAT_complement/bVbcR34.webp" class="" title="说明">
-
-<p>在这张图上，我们可以清楚的看到，这个对象集合中保存了大量 Person 对象的引用，就是它导致的内存泄露。<br>至此，我们已经拥有了足够的信息去寻找泄露点，回到代码，我们发现，是下面的代码导致了内存泄露 :<br>清单 1. 内存泄漏的代码段</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">while (1&lt;2) </span><br><span class="line">&#123; </span><br><span class="line">            </span><br><span class="line">    Person person = new Person(&quot;name&quot;,&quot;address&quot;,i); </span><br><span class="line">    v.add(person); </span><br><span class="line">    person = null; </span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a><strong>总结</strong></h2><p>从上面的例子我们可以看到用 MAT 来进行堆转储文件分析，寻找内存泄露非常简单，尤其是对于新手而言，这是一个很好的辅助分析工具。但是，MAT 绝对不仅仅是一个“傻瓜式”内存分析工具，它还提供很多高级功能，比如 MAT 支持用 **OQL（Object Query Language）**对 <strong>heap dump</strong> 中的对象进行查询，支持对线程的分析等，有关这些功能的使用可以参考 MAT 的帮助文档。</p>
-]]></content>
-      <categories>
-        <category>工具与组件</category>
-      </categories>
-      <tags>
-        <tag>java</tag>
-        <tag>内存分析</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>关于Myeclipse2017 MemoryAnalyzer的安装</title>
-    <url>/2025/08/06/MAT_Install/</url>
-    <content><![CDATA[<p>最近想要安装MemoryAnalyzer（MAT）这个性能分析工具的插件，本以为网上教程那么多，教我一个技术一般的人足够了，我安装的是Myeclipse2017，可是在网上翻了一圈，大多数的Myeclipse教程都是10版本的，我呢，不想在论坛上问（没耐心…）,突然想到了自己当初装svn插件时的事情，类比一下是不是也可以呢？步骤如下：</p>
-<span id="more"></span>
-
-<p>首先下载MemoryAnalyzer插件（这个一样）<br><a href="http://www.eclipse.org/mat/downloads.php">http://www.eclipse.org/mat/do...</a><br>点击Archived Update Site后面的压缩包</p>
-<img src="/2025/08/06/MAT_Install/bVbczqP.webp" class="" title="说明">
-
-<p>解压之后如图：</p>
-<img src="/2025/08/06/MAT_Install/bVbczrl.webp" class="" title="说明">
-<p>将feature与binary中的文件拷入myeclipse的feature中，将plugins中的文件拷入myeclipse的plugins中，然后<br>重启myeclipse<br>如下图</p>
-<img src="/2025/08/06/MAT_Install/bVbczrP.webp" class="" title="说明">
-<p>表示安装成功。<br>进入windows-preference中可以看到MemoryAnalyzer</p>
-]]></content>
-      <categories>
-        <category>工具与组件</category>
-      </categories>
-      <tags>
-        <tag>java</tag>
-        <tag>内存分析</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Hello World</title>
-    <url>/2025/08/06/hello-world/</url>
-    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
-<span id="more"></span>
-
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/deployment.html">Deployment</a></p>
-]]></content>
-      <categories>
-        <category>其他</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>Hexo博客设置以及Next主题美化</title>
-    <url>/2025/08/06/hexo/</url>
-    <content><![CDATA[<h2 id="1-blog配置"><a href="#1-blog配置" class="headerlink" title="1. blog配置"></a>1. blog配置</h2><p><del>常言道：</del></p>
-<blockquote>
-<p>任何不谈配置只谈操作的行为都是在耍流氓 –佚名</p>
-</blockquote>
-<p>虽说hexo的版本3.x之间改动也不是很大，next5.x系列和现在的6.x系列也差不多，但是终归还是有那么一点细小的变化，保不准就会有bug生成，所以博主还是提一下自己的blog配置：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Hexo v3.7.1     Next v6.3.0   编辑器：sublime text2</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>就目前为止，已经算是挺新版的了，当然，大多数配置各版本之间都一样，大家可以酌情考虑版本的选择。</p>
-<span id="more"></span>
-
-<p><strong>好了！准备进入正题！本blog将带领各位怎么将一个空空如也的blog装饰成博主一样有那么一点起色的网站。博主将从零搭起，所有的操作都将在博主的笔记本上为大家做出示范。</strong></p>
-<h3 id="1-1-next主题基本配置"><a href="#1-1-next主题基本配置" class="headerlink" title="1.1 next主题基本配置"></a>1.1 next主题基本配置</h3><p>首先我们先下载<a href="https://github.com/theme-next/hexo-theme-next/releases">next主题:</a>在这里选择大家需要的版本进行下载。下载完成后，我们的blog便有了两个主要的配置文件，分别是hexo自带的<code>_config.yml</code>文件和next主题自带的<code>_config.yml</code>文件，为了方便，我们将hexo自带的<code>_config.yml</code>文件称为站点配置文件，next主题带的<code>_config.yml</code>文件称为主题配置文件。</p>
-<p>首先，第一步我们来更换一下blog的主题，这一步又分为三个小步骤：</p>
-<ol>
-<li><p>将下载下来的next主题文件夹重命名为 next 。</p>
-</li>
-<li><p>将next文件夹移入blog所在的文件夹的themes 文件夹中，在这里，本人是<code>/blog/themes</code></p>
-</li>
-<li><p>修改站点配置文件，在配置文件中搜索</p>
-<p>theme</p>
-<p>，将其的值改为</p>
-<p>next</p>
-<p>。</p>
-<p>注意 冒号： 后面一定要有一个空格</p>
-<p>&#x2F;&#x2F; 站点_config.yml 文件</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"># Extensions</span><br><span class="line">## Plugins: https://hexo.io/plugins/</span><br><span class="line">## Themes: https://hexo.io/themes/</span><br><span class="line">theme: next</span><br><span class="line"></span><br></pre></td></tr></table></figure></li>
-</ol>
-<p>现在主题就已经配置好了，接下来我们优化一下：继续修改站点配置文件：<br>&#x2F;&#x2F; 站点_config.yml 文件</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"># Site</span><br><span class="line">title: Eternal_zttz #网站的名字</span><br><span class="line">subtitle: Saty Hungry，Stay Foolish #网站的副标题</span><br><span class="line">description: 个人blog网站 #个人的描述</span><br><span class="line">keywords:</span><br><span class="line">author: Eternal_zttz #博主的名字</span><br><span class="line">language: zh-CN #blog的语言  zh-CN 代表中文</span><br><span class="line">timezone:</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>然后我们修改主题配置文件：<br>&#x2F;&#x2F; 主题_config.yml 文件 ，搜索Schemes可找到</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"># Schemes</span><br><span class="line">#scheme: Muse</span><br><span class="line">#scheme: Mist</span><br><span class="line">scheme: Pisces</span><br><span class="line">#scheme: Gemini</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>这是next的基本页面布局，默认为Muse布局，在这里，我们选择第三个Pisces</p>
-<p>很好，接下来，我们在终端命令行cd 进入blog所在目录，如我是直接命名为blog，所以<code>cd blog</code>:</p>
-<p>接着运行：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">hexo s</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>在浏览器中打开链接：不出意外，打开后会是这么样的界面：<br><img src="http://pfv94oich.bkt.clouddn.com/webtest.png" alt="blog"><br>ok，我们的blog已经略有起色，样式已经离我们的最终样式八九不离十了，接下来，我们将对其的各个部分进行优化：</p>
-<hr>
-<h2 id="2-next主题侧边栏优化"><a href="#2-next主题侧边栏优化" class="headerlink" title="2. next主题侧边栏优化"></a>2. next主题侧边栏优化</h2><p>在这一部分，我们将对next主题的侧边栏进行优化，主要分为以下几部分：</p>
-<ol>
-<li>next主题页面生成</li>
-<li>个人头像设置</li>
-<li>点击个人头像回到主页面</li>
-<li>RSS订阅设置</li>
-<li>社交栏图标的设置</li>
-<li>添加网易云音乐</li>
-<li>页面圆角的设置</li>
-</ol>
-<h3 id="2-1-next主题页面生成"><a href="#2-1-next主题页面生成" class="headerlink" title="2.1. next主题页面生成"></a>2.1. next主题页面生成</h3><p>我们可以看到，hexo默认生成的页面只有两个，即<strong>首页</strong>和<strong>归档</strong> 页面，对于有强迫症的我来说简直是<strong>不！</strong> <strong>协！</strong> <strong>！调</strong>，那么接下来，我们来生成我们所需的页面：</p>
-<h4 id="2-1-1-页面的生成："><a href="#2-1-1-页面的生成：" class="headerlink" title="2.1.1 页面的生成："></a>2.1.1 页面的生成：</h4><p>首先，我们修改主题配置文件：<br>&#x2F;&#x2F; 主题_config.yml 文件 ，搜索menu可找到</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">menu:</span><br><span class="line">  home: / || home   #主页</span><br><span class="line">  about: /about/ || user  #关于</span><br><span class="line">  tags: /tags/ || tags   #标签</span><br><span class="line">  categories: /categories/ || th  #分类</span><br><span class="line">  archives: /archives/ || archive  #归档</span><br><span class="line">  #schedule: /schedule/ || calendar  #日程表</span><br><span class="line">  #sitemap: /sitemap.xml || sitemap   #站点地图</span><br><span class="line">  #commonweal: /404/ || heartbeat    #公益404</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>可以看到，大部分的都是注释掉了的，这里我已经把我需要的页面注释解除了，大家可以自行考虑需要的页面。<br>在这里，<strong>斜线&#x2F;&#x2F;<strong>之间的文字是 该页面 的名字，如／about／ ，说明我们要</strong>跳转的页面</strong>的名字为about , 而**||**后的文字是这个页面的图标名字.<br>这时候我们主页上就可以看到这几个页面，接下来实现页面的跳转：</p>
-<h4 id="2-1-2-生成about页面："><a href="#2-1-2-生成about页面：" class="headerlink" title="2.1.2 生成about页面："></a>2.1.2 生成about页面：</h4><p>终端回到blog的根目录.运行：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">hexo new page &quot;about&quot;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>ok,接下来<strong>关于</strong>页面的markdown自己编写就行。</p>
-<h4 id="2-1-3-生成tags页面："><a href="#2-1-3-生成tags页面：" class="headerlink" title="2.1.3 生成tags页面："></a>2.1.3 生成tags页面：</h4><p>终端回到blog的根目录.运行：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">hexo new page &quot;tags&quot;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<h5 id="2-1-4-生成categories页面"><a href="#2-1-4-生成categories页面" class="headerlink" title="2.1.4 生成categories页面:"></a>2.1.4 生成categories页面:</h5><p>终端回到categories的根目录.运行：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">hexo new page &quot;categories&quot;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>tags和categorise页面不用自己布局，会自动根据我们的blog的布局好</p>
-<h3 id="2-2-站内搜索功能的实现"><a href="#2-2-站内搜索功能的实现" class="headerlink" title="2.2 站内搜索功能的实现"></a>2.2 站内搜索功能的实现</h3><p>文章写多了，想一篇篇的去寻找可不容易，这时候，我们便需要一个站内的搜索功能，即服务别人，也能方便自己。<br>首先，我们在终端进入blog的根目录下，执行以下命令：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">$ npm install hexo-generator-searchdb --save</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>接着，我们进入站点配置文件_config.yml,在最后新增以下内容：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">search:</span><br><span class="line">  path: search.xml</span><br><span class="line">  field: post</span><br><span class="line">  format: html</span><br><span class="line">  limit: 10000</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>最后，打开主题配置文件_config.yml,搜索local_search,其值改为true：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"># Local search</span><br><span class="line">local_search:</span><br><span class="line">  enable: true</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>ok，现在站内搜索就大功告成了，一切准备就绪～</p>
-<h3 id="2-3-个人头像设置"><a href="#2-3-个人头像设置" class="headerlink" title="2.3 个人头像设置"></a>2.3 个人头像设置</h3><p>要设置自己的侧边栏头像，首先，准备一张头像的图片，命名为<strong>header.jpg</strong>，然后，将图片放在<code>/blog/themes/next/source/images/</code>文件夹下，接着修改主题配置文件，搜索<code>avatar</code></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">avatar:</span><br><span class="line">  # in theme directory(source/images): /images/avatar.gif</span><br><span class="line">  # in site  directory(source/uploads): /uploads/avatar.gif</span><br><span class="line">  # You can also use other linking images.</span><br><span class="line">   - url: /images/avatar.gif</span><br><span class="line">   + url: /images/header.jpg     #图片的地址</span><br><span class="line">  # If true, the avatar would be dispalyed in circle. </span><br><span class="line">  rounded: false   #设置图片是否为圆形，当图片为正方形时为圆，否则为椭圆</span><br><span class="line">  # The value of opacity should be choose from 0 to 1 to set the opacity of the avatar.</span><br><span class="line">  opacity: 1 #图片的透明度</span><br><span class="line">  # If true, the avatar would be rotated with the cursor.</span><br><span class="line">  rotated: false  #设置鼠标移到图片上后头像是否转动</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>将<strong>url</strong>里面的值改为图片的地址就可以了，</p>
-<h3 id="2-4-点击个人头像回到主页面"><a href="#2-4-点击个人头像回到主页面" class="headerlink" title="2.4 点击个人头像回到主页面"></a>2.4 点击个人头像回到主页面</h3><p>一般我们看到一个头像，总忍不住去点击它，然而遗憾的是，next主题中默认并没有这个事件，作为一个强迫症，这能忍？？？其实，实现这个功能也很简单：<br>首先，我们打开文件<code>/blog/themes/next/layout/_macro/sidebar.swig</code>,然后，修改以下内容：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">+ &lt;a href=&quot;/&quot;&gt;</span><br><span class="line">    &lt;img class=&quot;site-author-image&quot; itemprop=&quot;image&quot;</span><br><span class="line">       src=&quot;&#123;&#123; url_for( theme.avatar.url | default(theme.images + &#x27;/avatar.gif&#x27;) ) &#125;&#125;&quot;</span><br><span class="line">       alt=&quot;&#123;&#123; author &#125;&#125;&quot; /&gt;</span><br><span class="line">+ &lt;/a&gt;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>ok，重新部署一下，就可以看到效果了</p>
-<h3 id="2-5-RSS订阅设置"><a href="#2-5-RSS订阅设置" class="headerlink" title="2.5 RSS订阅设置"></a>2.5 RSS订阅设置</h3><p>什么？大家都不知道什么是RSS？！！！<br>好吧，其实…本博主也不知道emmm，大家可以看看知乎上有关<a href="https://github.com/theme-next/hexo-theme-next/releases">RSS</a>的文章<br><del>PS：加上好看就完事了不是,计较干啥</del><br>首先，我们在终端命令行进入blog所在的目录，运行：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">$ npm install --save hexo-generator-feed</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>接着，打开<strong>站点配置文件</strong>，在文件的末尾添加：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"># Extensions</span><br><span class="line">## Plugins: http://hexo.io/plugins/</span><br><span class="line">plugins: hexo-generate-feed</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>然后打开<strong>主题配置文件</strong>，搜索rss，将其设置成如下所示，注意冒号后要加上一个空格</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"># Set rss to false to disable feed link.</span><br><span class="line"># Leave rss as empty to use site&#x27;s feed link, and install hexo-generator-feed: `npm install hexo-generator-feed --save`.</span><br><span class="line"># Set rss to specific value if you have burned your feed already.</span><br><span class="line">rss: /atom.xml</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>OK，all right</p>
-<h3 id="2-6-社交栏设置"><a href="#2-6-社交栏设置" class="headerlink" title="2.6 社交栏设置"></a>2.6 社交栏设置</h3><p>在主题配置文件中，搜索social，定位到如下代码段，把social的注释取消掉，接下来，就看你需要显示什么社交网站，写上网站名+网址就行。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">social:</span><br><span class="line">  GitHub: https://github.com/yourname || github   #网站名：网址 ||图标名</span><br><span class="line">  简书: http://www.jianshu.com || heartbeat</span><br><span class="line">  #E-Mail: mailto:yourname@gmail.com || envelope</span><br><span class="line">  #Google: https://plus.google.com/yourname || google</span><br><span class="line">  #Twitter: https://twitter.com/yourname || twitter</span><br><span class="line">  #FB Page: https://www.facebook.com/yourname || facebook</span><br><span class="line">  #VK Group: https://vk.com/yourname || vk</span><br><span class="line">  #StackOverflow: https://stackoverflow.com/yourname || stack-overflow</span><br><span class="line">  #YouTube: https://youtube.com/yourname || youtube</span><br><span class="line">  #Instagram: https://instagram.com/yourname || instagram</span><br><span class="line">  #Skype: skype:yourname?call|chat || skype</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<h3 id="2-7-增加网易云音乐"><a href="#2-7-增加网易云音乐" class="headerlink" title="2.7 增加网易云音乐"></a>2.7 增加网易云音乐</h3><p>音乐是不应该被辜负的，所以，我们可以在侧边栏加上网易云的音乐外链，具体方法为：</p>
-<ol>
-<li><p>打开网易云音乐网页版，选择自己想要放上去的音乐。</p>
-</li>
-<li><p>在播放页面选择外链播放器，选择一个自己喜欢的样式。<img src="http://pfv94oich.bkt.clouddn.com/friend%20A.png" alt="blog"></p>
-</li>
-<li><p>复制其中的代码<img src="http://pfv94oich.bkt.clouddn.com/friendA1.png" alt="blog"></p>
-</li>
-<li><p>打开</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/blog/themes/next/layout/_macro/sidebar.swig</span><br></pre></td></tr></table></figure>
-
-<p>文件，将代码复制到适合的位置，例如，我是在约161-162行增加</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#123;% endif %&#125;</span><br><span class="line">         &#123;% include custom_sidebar %&#125;</span><br><span class="line">       &lt;/div&gt;</span><br><span class="line">     &lt;/section&gt;</span><br><span class="line"></span><br><span class="line"> +  &lt;iframe frameborder=&quot;no&quot; border=&quot;0&quot; marginwidth=&quot;0&quot; marginheight=&quot;0&quot; width=298 height=52 src=&quot;//music.163.com/outchain/player?type=2&amp;id=5079881&amp;auto=0&amp;height=32&quot;&gt;&lt;/iframe&gt;</span><br><span class="line"></span><br><span class="line">     &#123;% if display_toc and toc(page.content).length &gt; 1 %&#125;</span><br><span class="line">     &lt;!--noindex--&gt;</span><br><span class="line">       &lt;section class=&quot;post-toc-wrap motion-element sidebar-panel sidebar-panel-active&quot;&gt;</span><br><span class="line">         &lt;div class=&quot;post-toc&quot;&gt;</span><br><span class="line"></span><br></pre></td></tr></table></figure></li>
-</ol>
-<p>重新部署一下网站，就可以看到结果了</p>
-<h3 id="2-8-实现侧边栏页面的圆角"><a href="#2-8-实现侧边栏页面的圆角" class="headerlink" title="2.8 实现侧边栏页面的圆角"></a>2.8 实现侧边栏页面的圆角</h3><p>侧边栏默认是矩形的，可能有一些朋友不是特别喜欢这种尖锐的四角，希望可以稍稍弄的平滑一点，说干就干！下面我们来具体实现它。</p>
-<ol>
-<li><p>首先，我们打开<code>/blog/themes/next/source/css/_variables/Pisces.styl</code>文件，里面定义了一些常量，用来定义blog样式表的值。</p>
-</li>
-<li><p>然后，找到</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">$border-radius</span><br></pre></td></tr></table></figure>
-
-<p>，</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">// Borders</span><br><span class="line">// --------------------------------------------------</span><br><span class="line">$box-shadow-inner                 = initial;</span><br><span class="line">$box-shadow                       = initial;</span><br><span class="line"></span><br><span class="line">$border-radius-inner              = initial;</span><br><span class="line">$border-radius                    = initial;</span><br><span class="line"></span><br></pre></td></tr></table></figure></li>
-</ol>
-<p>可以看到默认为初始值，即为0<br>改变 为<code>$border-radius = 16px;</code><br>这时候，下面的一个侧边栏弧度就已经改好了</p>
-<ol>
-<li><p>接着，打开</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/blog/themes/next/source/css/_schemes/Pisces/_layout.styl</span><br></pre></td></tr></table></figure>
-
-<p>文件，</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">diff:true.header-inner &#123;</span><br><span class="line">  position: absolute;</span><br><span class="line">  top: 0;</span><br><span class="line">  overflow: hidden;</span><br><span class="line">  padding: 0;</span><br><span class="line">  width: $sidebar-desktop;</span><br><span class="line">  background: white;</span><br><span class="line">  box-shadow: $box-shadow-inner;</span><br><span class="line"> -border-radius: $border-radius-inner;</span><br><span class="line"> +border-radius: $border-radius;//修改上面的侧边栏的弧度</span><br><span class="line"></span><br></pre></td></tr></table></figure></li>
-</ol>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">.content-wrap &#123;</span><br><span class="line">  float: right;</span><br><span class="line">  box-sizing: border-box;</span><br><span class="line">  padding: $content-desktop-padding;</span><br><span class="line">  width: $content-desktop;</span><br><span class="line">  background: white;</span><br><span class="line">  min-height: 700px;</span><br><span class="line">  box-shadow: $box-shadow-inner;</span><br><span class="line"> - border-radius: $border-radius-inner;</span><br><span class="line"> + border-radius: $border-radius; //修改整个文章页面的弧度</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>ok 大功告成，到此为止，我们文章的侧边栏就已经优化完毕了，当然，还有更多操作，大家可以去尝试，不过，建议没有把握之前先做好blog的备份。<del>别问我为什么要这么说</del><br>来看看最终侧边栏效果：<br><img src="http://pfv94oich.bkt.clouddn.com/blog1.png" alt="blog"></p>
-<h2 id="3-next主题主页面优化"><a href="#3-next主题主页面优化" class="headerlink" title="3. next主题主页面优化"></a>3. next主题主页面优化</h2><p>在上面我们已经把侧边栏的优化都已经完成了，不得不说，刚完成这一部分时我还是有很大的成就感的，接下来，我们将对我们blog的主页面进行进一步的优化。<br>在这一部分，我们将对以下进行操作：</p>
-<ol>
-<li>blog右上角出现fork me on github 图标</li>
-<li>文章背景出现阴影边框</li>
-<li>为文章内容添加统计功能，文字总数+阅读时长</li>
-<li>为文章中的代码块增加一键复制功能</li>
-<li>文章结尾出现“本文结束提示”</li>
-<li>增加打赏功能</li>
-<li>增加版权信息</li>
-<li>修改标签样式</li>
-</ol>
-<h3 id="3-1-增加fork-me-on-github-图标"><a href="#3-1-增加fork-me-on-github-图标" class="headerlink" title="3.1 增加fork me on github 图标"></a>3.1 增加fork me on github 图标</h3><p>在<a href="http://tholman.com/github-corners/">这里</a>(图片版)或<a href="https://github.com/blog/273-github-ribbons">这里</a>(文字版)选择一款自己喜欢的图标，然后把图标旁的代码拷贝一份，放到</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">blog/themes/next/layout/_layout.swig</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>这个文件夹中，注意要放到<code>&lt;div class=&quot;headband&quot;&gt;&lt;/div&gt;</code>的下方<br>OK,这就大功告成了。</p>
-<h3 id="3-2-文章背景出现阴影边框"><a href="#3-2-文章背景出现阴影边框" class="headerlink" title="3.2 文章背景出现阴影边框"></a>3.2 文章背景出现阴影边框</h3><p>这个效果实现起来很简单，打开<code>blog\themes\next\source\css\_custom\custom.styl</code>文件，放入以下代码：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">// 主页文章添加阴影效果</span><br><span class="line"> .post &#123;</span><br><span class="line">   margin-top: 60px;</span><br><span class="line">   margin-bottom: 60px;</span><br><span class="line">   padding: 25px;</span><br><span class="line">   -webkit-box-shadow: 0 0 5px rgba(202, 203, 203, .5);</span><br><span class="line">   -moz-box-shadow: 0 0 5px rgba(202, 203, 204, .5);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>重新部署一下即可实现。</p>
-<h3 id="3-3-实现点击出现爱心功能"><a href="#3-3-实现点击出现爱心功能" class="headerlink" title="3.3 实现点击出现爱心功能"></a>3.3 实现点击出现爱心功能</h3><p>首先，进入<a href="http://7u2ss1.com1.z0.glb.clouddn.com/love.js">该网址</a>,复制页面中的代码，在路径<code>blog/themes/next/source/js/src/</code>中新建<code>love.js</code>文件，将复制的代码粘贴到该文件中。<br>然后打开<code>/blog/themes/next/layout/_layout.swig</code>文件，在该文件的最后增加以下代码：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&lt;!-- 页面点击小红心 --&gt;</span><br><span class="line">&lt;script type=&quot;text/javascript&quot; src=&quot;/js/src/love.js&quot;&gt;&lt;/script&gt;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>保存后即可看到效果。</p>
-<h3 id="3-4-“-阅读全文-”-按钮改弧度"><a href="#3-4-“-阅读全文-”-按钮改弧度" class="headerlink" title="3.4 “ 阅读全文 ” 按钮改弧度"></a>3.4 “ 阅读全文 ” 按钮改弧度</h3><p>这个功能和侧边栏改弧度的操作是差不多的，进入文件<code>/blog/themes/next/source/css/_variables/Pisces.styl</code>中，把以下代码修改一下：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">// Button</span><br><span class="line">- $btn-default-radius           = 2px</span><br><span class="line">+ $btn-default-radius           = 16px</span><br><span class="line">$btn-default-bg               = white</span><br><span class="line">$btn-default-color            = $text-color</span><br><span class="line">$btn-default-border-color     = $text-color</span><br><span class="line">$btn-default-hover-color      = white</span><br><span class="line">$btn-default-hover-bg         = $black-deep</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>保存后即可看见效果。</p>
-<h3 id="3-5-为文章内容添加统计功能，文字总数-阅读时长"><a href="#3-5-为文章内容添加统计功能，文字总数-阅读时长" class="headerlink" title="3.5 为文章内容添加统计功能，文字总数+阅读时长"></a>3.5 为文章内容添加统计功能，文字总数+阅读时长</h3><p>这个功能在next主题中已经存在了，我们只需要打开开关就行，具体步骤分为下面三步：</p>
-<ol>
-<li><p>终端进入blog根目录，执行下面代码：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">$ npm install hexo-symbols-count-time --save</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-</li>
-<li><p>进入站点配置文件，为blog配置统计功能，将以下代码复制到最后：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">symbols_count_time:</span><br><span class="line">  symbols: true</span><br><span class="line">  time: true</span><br><span class="line">  total_symbols: true</span><br><span class="line">  total_time: true</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-</li>
-<li><p>进入主题配置文件，搜素<code>symbols_count_time</code>,然后把要显示的改为<code>true</code>.<br>更深入的操作大家可以看github上的<a href="https://github.com/theme-next/hexo-symbols-count-time">说明</a>。<br>PS：如果大家配置完成，然后检查无误后，打开页面依旧没有显示，不要着急，第一次显示可能会比较慢，可以休息一会。（本人多次从头配置都没有效果，一气之下去睡了个午觉，醒来就好了0.0）.</p>
-</li>
-</ol>
-<h3 id="3-6-为文章中的代码块增加一键复制功能"><a href="#3-6-为文章中的代码块增加一键复制功能" class="headerlink" title="3.6 为文章中的代码块增加一键复制功能"></a>3.6 为文章中的代码块增加一键复制功能</h3><p>在next v6.3.0 版本中，这个功能已经是集成了的，我们进入站点配置文件，搜索<code>copy_button</code>。把它的值改为true即可：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"># Add copy button on codeblock</span><br><span class="line">  copy_button:copy</span><br><span class="line">    enable: true  #是否开启复制功能</span><br><span class="line">    # Show text copy result</span><br><span class="line">    show_result: true #是否显示提示的复制结果</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>接着，将鼠标移动到代码块中，便可以看到结果。默认按钮是中文“复制”，若是想改为英文“copy”，可进入<code>blog/themes/next/languages/zh-CN.yml</code>文件中，将下面部分改了即可：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">copy_button: copy</span><br><span class="line">copy_success: succeed</span><br><span class="line">copy_failure: failed</span><br><span class="line">copyright:</span><br><span class="line">   author: 本文作者</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>这个文件夹中保留了所有的中英部分的对应关系，大家想改各标签名字的话，可以将这个文件中对应的部分改了即可。</p>
-<h3 id="3-7-文章结尾提示-“本文结束”"><a href="#3-7-文章结尾提示-“本文结束”" class="headerlink" title="3.7 文章结尾提示 “本文结束”"></a>3.7 文章结尾提示 “本文结束”</h3><p>在文件夹<code>\themes\next\layout\_macro</code>中新建<code>passage-end-tag.swig</code>文件，并在文件中增加以下代码：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&lt;div&gt;</span><br><span class="line">    &#123;% if not is_index %&#125;</span><br><span class="line">        &lt;div style=&quot;text-align:center;color: #555;font-size:14px;&quot;&gt;-------------The End-------------&lt;/div&gt;</span><br><span class="line">    &#123;% endif %&#125;</span><br><span class="line">&lt;/div&gt;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>接着打开<code>\themes\next\layout\_macro\post.swig</code>文件，再这个地方增加如下代码：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"> &#123;#####################&#125;</span><br><span class="line"> &#123;### END POST BODY ###&#125;</span><br><span class="line"> &#123;#####################&#125;</span><br><span class="line"></span><br><span class="line">+ &lt;div&gt;</span><br><span class="line">+  &#123;% if not is_index %&#125;</span><br><span class="line">+    &#123;% include &#x27;passage-end-tag.swig&#x27; %&#125;</span><br><span class="line">+  &#123;% endif %&#125;</span><br><span class="line">+ &lt;/div&gt;</span><br><span class="line"></span><br><span class="line"> &#123;% if theme.wechat_subscriber.enabled and not is_index %&#125;</span><br><span class="line">   &lt;div&gt;</span><br><span class="line">     &#123;% include &#x27;wechat-subscriber.swig&#x27; %&#125;</span><br><span class="line">   &lt;/div&gt;</span><br><span class="line"> &#123;% endif %&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>代码如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&lt;div&gt;</span><br><span class="line">  &#123;% if not is_index %&#125;</span><br><span class="line">    &#123;% include &#x27;passage-end-tag.swig&#x27; %&#125;</span><br><span class="line">  &#123;% endif %&#125;</span><br><span class="line">  &lt;/div&gt;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>最后打开主题配置文件，在文件的最后增加如下代码：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"># 文章末尾添加“本文结束”标记</span><br><span class="line">passage_end_tag:</span><br><span class="line">  enabled: true</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>保存后，打开网页即可看到效果。</p>
-<h3 id="3-8-增加打赏功能"><a href="#3-8-增加打赏功能" class="headerlink" title="3.8 增加打赏功能"></a>3.8 增加打赏功能</h3><p>这个功能很简单，首先，我们将保存微信支付的收款码，将其命名为<code>wechatpay.jpg</code>，并将其保存在<code>/blog/themes/next/source/images/</code>文件中。<br>接着，我们打开主题配置文件，搜索<code>wechatpay</code>，将其前面的注释取消即可：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#Reward</span><br><span class="line">#reward_comment: Donate comment here</span><br><span class="line">wechatpay: /images/wechatpay.jpg</span><br><span class="line">#alipay: /images/alipay.jpg</span><br><span class="line">#bitcoin: /images/bitcoin.png</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>这里我们可以放多种方式的支付码，看个人喜好即可，方法都是一样的。</p>
-<h3 id="3-9-增加版权信息"><a href="#3-9-增加版权信息" class="headerlink" title="3.9 增加版权信息"></a>3.9 增加版权信息</h3><p>博文写好了，怎么说也是作者的一番心血，我们不去抄袭别人的作品，也不希望别人什么都不说带走我们的作品，所以，我们需要在底部做一个版权申明：<br>next主题中现在已经是集成了这个功能的了，我们只在主题配置文件中搜索<code>copyright</code>,并把<code>enable</code>的值改为<code>true</code>即可.</p>
-<h3 id="3-10-修改标签样式"><a href="#3-10-修改标签样式" class="headerlink" title="3.10 修改标签样式"></a>3.10 修改标签样式</h3><p>默认的标签前面是一个#号，我们把它改成标签的符号：<br>修改模板<code>/themes/next/layout/\_macro/post.swig</code>，搜索<code>rel=&quot;tag&quot;&gt;#</code>，将<code>#</code> 换成<code>&lt;i class=&quot;fa fa-tag&quot;&gt;&lt;/i&gt;</code>即可。</p>
-<p>这时候，我们的标签还是有下划线的，要想去掉下滑线，我们可以进入：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/blog/themes/next/source/css/_custom/custom.styl</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>文件，在文件最后增加下面代码：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">.posts-expand .post-tags a &#123;</span><br><span class="line">    border-bottom: none;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>即可</p>
-<hr>
-<h2 id="4-next主题底部优化"><a href="#4-next主题底部优化" class="headerlink" title="4. next主题底部优化"></a>4. next主题底部优化</h2><p>侧边栏和主页面的优化都已经实现了，接下来便是底部部分的优化，主要包括下面几个部分：</p>
-<ol>
-<li>为文章增加评论功能</li>
-<li>增加在线联系Daovoice</li>
-<li>修改底部作者图标为跳动的红心</li>
-<li>隐藏下方的强力驱动和主题信息</li>
-<li>增加本站运行时间</li>
-<li>增加站点访问人数和总访问量</li>
-</ol>
-<h3 id="4-1-为文章增加评论功能"><a href="#4-1-为文章增加评论功能" class="headerlink" title="4.1 为文章增加评论功能"></a>4.1 为文章增加评论功能</h3><p>next主题的6.x版里面已经集成了很多评论了，包括Gitment和Valine，大家有兴趣可以去试一试。<br>最开始我用的评论是来必力评论系统，</p>
-<h3 id="4-2-增加在线联系Daovoice"><a href="#4-2-增加在线联系Daovoice" class="headerlink" title="4.2 增加在线联系Daovoice"></a>4.2 增加在线联系Daovoice</h3><p>首先在<a href="http://dashboard.daovoice.io/get-started?invite_code=5f355066">Daovoice</a>注册账号,邀请码是<code>5f353066</code>，注册完成后会得到一个 app_id<br>声明：这个链接包含了博主的邀请码，注册成功每人会有100元代金券，如果不想使用，可以进入<a href="https://account.daocloud.io/signin">Daovoice官网</a>注册账号。<br>注册成功后，会得到一个app_id:</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">daovoice(&#x27;init&#x27;, &#123;</span><br><span class="line">  app_id: &quot;*******&quot;</span><br><span class="line">&#125;);</span><br><span class="line">daovoice(&#x27;update&#x27;);</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>记下这个app_id的值，然后打开<code>/blog/themes/next/layout/_partials/head/head.swig</code>文件，在如下位置插入代码：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#123;% if theme.daovoice %&#125;</span><br><span class="line">  &lt;script&gt;</span><br><span class="line">  (function(i,s,o,g,r,a,m)&#123;i[&quot;DaoVoiceObject&quot;]=r;i[r]=i[r]||function()&#123;(i[r].q=i[r].q||[]).push(arguments)&#125;,i[r].l=1*new Date();a=s.createElement(o),m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;a.charset=&quot;utf-8&quot;;m.parentNode.insertBefore(a,m)&#125;)(window,document,&quot;script&quot;,(&#x27;https:&#x27; == document.location.protocol ? &#x27;https:&#x27; : &#x27;http:&#x27;) + &quot;//widget.daovoice.io/widget/0f81ff2f.js&quot;,&quot;daovoice&quot;)</span><br><span class="line">  daovoice(&#x27;init&#x27;, &#123;</span><br><span class="line">      app_id: &quot;&#123;&#123;theme.daovoice_app_id&#125;&#125;&quot;</span><br><span class="line">    &#125;);</span><br><span class="line">  daovoice(&#x27;update&#x27;);</span><br><span class="line">  &lt;/script&gt;</span><br><span class="line">&#123;% endif %&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>接着打开主题配置文件，在最后写下如下代码：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"># Online contact </span><br><span class="line">daovoice: true</span><br><span class="line">daovoice_app_id: 这里填你的刚才获得的 app_id</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>保存后打开页面即可看见效果。</p>
-<h3 id="4-3-修改底部作者图标为跳动的红心"><a href="#4-3-修改底部作者图标为跳动的红心" class="headerlink" title="4.3 修改底部作者图标为跳动的红心"></a>4.3 修改底部作者图标为跳动的红心</h3><p>这个功能实现起来很简单，打开主题配置文件,搜索<code>animated</code>:<br>把<code>icon</code> 区域的代码做如下修改：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"># Icon between year and copyright info.</span><br><span class="line"> icon:</span><br><span class="line">   # Icon name in fontawesome, see: https://fontawesome.com/v4.7.0/icons</span><br><span class="line">   # `heart` is recommended with animation in red (#ff0000).</span><br><span class="line">   name: heart</span><br><span class="line">   # If you want to animate the icon, set it to true.</span><br><span class="line">   animated: true</span><br><span class="line">   # Change the color of icon, using Hex Code.</span><br><span class="line">   color: &quot;#ff0000&quot;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>保存即可，如果想改为其他的图标，进入网站修改即可</p>
-<h3 id="4-4-隐藏下方的强力驱动和主题信息"><a href="#4-4-隐藏下方的强力驱动和主题信息" class="headerlink" title="4.4 隐藏下方的强力驱动和主题信息"></a>4.4 隐藏下方的强力驱动和主题信息</h3><p>进入<code>/blog/themes/next/layout/_partials/footer.swig</code>文件，注释掉关于这部分的信息即可：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#123;% if theme.footer.powered.enable %&#125;</span><br><span class="line"> + &lt;!-- </span><br><span class="line">  &lt;div class=&quot;powered-by&quot;&gt;&#123;#</span><br><span class="line">  #&#125;&#123;&#123; __(&#x27;footer.powered&#x27;, &#x27;&lt;a class=&quot;theme-link&quot; target=&quot;_blank&quot;&#x27; + nofollow + &#x27; href=&quot;https://hexo.io&quot;&gt;Hexo&lt;/a&gt;&#x27;) &#125;&#125;&#123;% if theme.footer.powered.version %&#125; v&#123;&#123; hexo_env(&#x27;version&#x27;) &#125;&#125;&#123;% endif %&#125;&#123;#</span><br><span class="line">#&#125;&lt;/div&gt;</span><br><span class="line">&#123;% endif %&#125;</span><br><span class="line"></span><br><span class="line">&#123;% if theme.footer.powered.enable and theme.footer.theme.enable %&#125;</span><br><span class="line">  &lt;span class=&quot;post-meta-divider&quot;&gt;|&lt;/span&gt;</span><br><span class="line">&#123;% endif %&#125;</span><br><span class="line"></span><br><span class="line">&#123;% if theme.footer.theme.enable %&#125;</span><br><span class="line">  &lt;div class=&quot;theme-info&quot;&gt;&#123;#</span><br><span class="line">  #&#125;&#123;&#123; __(&#x27;footer.theme&#x27;) &#125;&#125; &amp;mdash; &#123;#</span><br><span class="line">  #&#125;&lt;a class=&quot;theme-link&quot; target=&quot;_blank&quot;&#123;&#123; nofollow &#125;&#125; href=&quot;https://github.com/theme-next/hexo-theme-next&quot;&gt;&#123;#</span><br><span class="line">    #&#125;NexT.&#123;&#123; theme.scheme &#125;&#125;&#123;#</span><br><span class="line">  #&#125;&lt;/a&gt;&#123;% if theme.footer.theme.version %&#125; v&#123;&#123; version &#125;&#125;&#123;% endif %&#125;&#123;#</span><br><span class="line">#&#125;&lt;/div&gt;</span><br><span class="line">+ --&gt;</span><br><span class="line">&#123;% endif %&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<h3 id="4-5-增加本站运行时间"><a href="#4-5-增加本站运行时间" class="headerlink" title="4.5 增加本站运行时间"></a>4.5 增加本站运行时间</h3><p>进入<code>/blog/themes/next/layout/_partials/footer.swig</code>文件，在文件合适的地方放上如下代码：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&lt;div id=&quot;days&quot;&gt;&lt;/div&gt;</span><br><span class="line">&lt;script&gt;</span><br><span class="line">function show_date_time()&#123;</span><br><span class="line">    window.setTimeout(&quot;show_date_time()&quot;, 1000);</span><br><span class="line">    BirthDay=new Date(&quot;04/17/2018 15:13:14&quot;);//修改为自己的blog建站时间</span><br><span class="line">    today=new Date();</span><br><span class="line">    timeold=(today.getTime()-BirthDay.getTime());</span><br><span class="line">    sectimeold=timeold/1000</span><br><span class="line">    secondsold=Math.floor(sectimeold);</span><br><span class="line">    msPerDay=24*60*60*1000</span><br><span class="line">    e_daysold=timeold/msPerDay</span><br><span class="line">    daysold=Math.floor(e_daysold);</span><br><span class="line">    e_hrsold=(e_daysold-daysold)*24;</span><br><span class="line">    hrsold=setzero(Math.floor(e_hrsold));</span><br><span class="line">    e_minsold=(e_hrsold-hrsold)*60;</span><br><span class="line">    minsold=setzero(Math.floor((e_hrsold-hrsold)*60));</span><br><span class="line">    seconds=setzero(Math.floor((e_minsold-minsold)*60));</span><br><span class="line">    document.getElementById(&#x27;days&#x27;).innerHTML=&quot;本站已安全运行&quot;+daysold+&quot;天&quot;+hrsold+&quot;小时&quot;+minsold+&quot;分&quot;+seconds+&quot;秒&quot;;</span><br><span class="line">&#125;</span><br><span class="line">function setzero(i)&#123;</span><br><span class="line">    if (i&lt;10)</span><br><span class="line">    &#123;i=&quot;0&quot; + i&#125;;</span><br><span class="line">    return i;</span><br><span class="line">&#125;</span><br><span class="line">show_date_time();</span><br><span class="line">&lt;/script&gt;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>如我是在原next主题版本信息的下方增加上面的代码，代码在不同的位置会有不同的效果。</p>
-<h3 id="4-6-增加站点访问人数和总访问量"><a href="#4-6-增加站点访问人数和总访问量" class="headerlink" title="4.6 增加站点访问人数和总访问量"></a>4.6 增加站点访问人数和总访问量</h3><p>打开主题配置文件，搜索busuanzi，将<code>enable</code>的值改为<code>true</code>即可。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">busuanzi_count:</span><br><span class="line">  enable: true</span><br><span class="line">  total_visitors: true</span><br><span class="line">  total_visitors_icon: user</span><br><span class="line">  total_views: true</span><br><span class="line">  total_views_icon: eye</span><br><span class="line">  post_views: true</span><br><span class="line">  post_views_icon: eye</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<h2 id="5-推荐大佬文章"><a href="#5-推荐大佬文章" class="headerlink" title="5. 推荐大佬文章"></a>5. 推荐大佬文章</h2><p>这篇文章主要是为了记录自己搭建blog的经历，因为搭建blog的时候，自己经常忘记优化的方法，特记下以减轻今后搜索的负担：<br>网上有很多特别详细的优化文章，本篇文章也参考了很多，特拿出来与大家分享：</p>
-<ol>
-<li><a href="https://cherryblog.site/Hexo-high-level-tutorialcloudmusic,bg-customthemes-statistical.html">hexo高阶教程next主题优化</a></li>
-<li><a href="http://shenzekun.cn/hexo%E7%9A%84next%E4%B8%BB%E9%A2%98%E4%B8%AA%E6%80%A7%E5%8C%96%E9%85%8D%E7%BD%AE%E6%95%99%E7%A8%8B.html">hexo的next主题个性化教程:打造炫酷网站</a></li>
-<li><a href="https://www.dingxuewen.com/categories/Site/">Hexo搭建博客的个性化设置</a></li>
-<li><a href="https://reuixiy.github.io/technology/computer/computer-aided-art/2017/06/09/hexo-next-optimization.html">打造个性超赞博客Hexo+NexT+GitHubPages的超深度优化</a></li>
-</ol>
-<p><strong>强烈推荐最后一篇blog，一路看下来会收获很多很多</strong></p>
-]]></content>
-      <categories>
-        <category>其他</category>
-      </categories>
-      <tags>
-        <tag>hexo</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>分布式之数据库和缓存双写一致性方案解析（摘录）</title>
     <url>/2025/08/06/cacheAndMysql_consistency/</url>
     <content><![CDATA[<p><strong>引言</strong></p>
@@ -421,6 +75,71 @@
         <tag>java</tag>
         <tag>redis</tag>
         <tag>分布式</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>MemoryAnalyzer补充</title>
+    <url>/2025/08/06/MAT_complement/</url>
+    <content><![CDATA[<p><strong>首先</strong>，之前在网上下载的是Myeclipse的插件 –memory analyzer，在网站的下面是Memory Analyzer的单机版，单机版安装简单，适合日常操作。下载地址：<a href="http://www.eclipse.org/mat/downloads.php">http://www.eclipse.org/mat/do...</a><br>之前一直纠结如何获取一个Java项目的内存分析的hprof文件，网上找了很多博客都是一笔带过（这个很容易？！），最后可能是搜索恰当,用JVM指令:</p>
+<span id="more"></span>
+
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">jmap -dump:format=b,file=文件名.hprof[pid]</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>导出内存信息文件，然后利用Memory Analyzer工具打开进行内存分析（对于内存泄露，OOM等分析有很大的帮助）。</p>
+<h2 id="分析三步曲"><a href="#分析三步曲" class="headerlink" title="分析三步曲"></a><strong>分析三步曲</strong></h2><p>通常我们都会采用下面的“三步曲”来分析内存泄露问题：</p>
+<ul>
+<li>首先，对问题发生时刻的系统内存状态获取一个整体印象。</li>
+<li>第二步，找到最有可能导致内存泄露的元凶，通常也就是消耗内存最多的对象</li>
+<li>接下来，进一步去查看这个内存消耗大户的具体情况，看看是否有什么异常的行为。</li>
+</ul>
+<p>下面将用一个基本的例子来展示如何采用“三步曲”来查看生产的分析报告。</p>
+<h2 id="查看报告之一：内存消耗的整体状况"><a href="#查看报告之一：内存消耗的整体状况" class="headerlink" title="查看报告之一：内存消耗的整体状况"></a>查看报告之一：内存消耗的整体状况</h2><p>图 7. 内存泄露分析报告</p>
+<img src="/2025/08/06/MAT_complement/bVbcR3y.webp" class="" title="说明">
+
+<p>如图 7 所示，在报告上最醒目的就是一张简洁明了的饼图，从图上我们可以清晰地看到一个可疑对象消耗了系统 99% 的内存。在图的下方还有对这个可疑对象的进一步描述。我们可以看到内存是由<strong>java.util.Vectorcom.ibm.oti.vm.BootstrapClassLoader</strong> 负责这个对象的加载。这段描述非常短，但我相信您已经可以从中找到很多线索了，比如是哪个类占用了绝大多数的内存，它属于哪个组件等等。<br>接下来，我们应该进一步去分析问题，为什么一个 Vector 会占据了系统 99% 的内存，谁阻止了垃圾回收机制对它的回收。</p>
+<h2 id="查看报告之二：分析问题的所在"><a href="#查看报告之二：分析问题的所在" class="headerlink" title="查看报告之二：分析问题的所在"></a>查看报告之二：分析问题的所在</h2><p>首先我们简单回顾下 JAVA 的内存回收机制，内存空间中垃圾回收的工作由垃圾回收器 (<strong>Garbage Collector,GC</strong>) 完成的，它的核心思想是：对虚拟机可用内存空间，即堆空间中的对象进行识别，如果对象正在被引用，那么称其为存活对象，反之，如果对象不再被引用，则为垃圾对象，可以回收其占据的空间，用于再分配。<br>在垃圾回收机制中有一组元素被称为根元素集合，它们是一组被虚拟机直接引用的对象，比如，正在运行的线程对象，系统调用栈里面的对象以及被 <strong>system class loader</strong> 所加载的那些对象。堆空间中的每个对象都是由一个根元素为起点被层层调用的。因此，一个对象还被某一个存活的根元素所引用，就会被认为是存活对象，不能被回收，进行内存释放。因此，我们可以通过分析一个对象到根元素的引用路径来分析为什么该对象不能被顺利回收。如果说一个对象已经不被任何程序逻辑所需要但是还存在被根元素引用的情况，我们可以说这里存在内存泄露。<br>现在，让我们开始真正的寻找内存泄露之旅，点击“Details ”链接，可以看到如图 8 所示对可疑对象 1 的详细分析报告。<br>图 8. 可疑对象 1 的详细分析报告</p>
+<img src="/2025/08/06/MAT_complement/bVbcR3L.webp" class="" title="说明">
+
+<p>我们查看下从 GC 根元素到内存消耗聚集点的最短路径：<br>图 9. 从根元素到内存消耗聚集点的最短路径</p>
+<img src="/2025/08/06/MAT_complement/bVbcR3V.webp" class="" title="说明">
+
+<p>我们可以很清楚的看到整个引用链，内存聚集点是一个拥有大量对象的集合，如果你对代码比较熟悉的话，相信这些信息应该能给你提供一些找到内存泄露的思路了。<br>接下来，我们再继续看看，这个对象集合里到底存放了什么，为什么会消耗掉如此多的内存。<br>图 10. 内存消耗聚集对象信息</p>
+<img src="/2025/08/06/MAT_complement/bVbcR34.webp" class="" title="说明">
+
+<p>在这张图上，我们可以清楚的看到，这个对象集合中保存了大量 Person 对象的引用，就是它导致的内存泄露。<br>至此，我们已经拥有了足够的信息去寻找泄露点，回到代码，我们发现，是下面的代码导致了内存泄露 :<br>清单 1. 内存泄漏的代码段</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">while (1&lt;2) </span><br><span class="line">&#123; </span><br><span class="line">            </span><br><span class="line">    Person person = new Person(&quot;name&quot;,&quot;address&quot;,i); </span><br><span class="line">    v.add(person); </span><br><span class="line">    person = null; </span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a><strong>总结</strong></h2><p>从上面的例子我们可以看到用 MAT 来进行堆转储文件分析，寻找内存泄露非常简单，尤其是对于新手而言，这是一个很好的辅助分析工具。但是，MAT 绝对不仅仅是一个“傻瓜式”内存分析工具，它还提供很多高级功能，比如 MAT 支持用 **OQL（Object Query Language）**对 <strong>heap dump</strong> 中的对象进行查询，支持对线程的分析等，有关这些功能的使用可以参考 MAT 的帮助文档。</p>
+]]></content>
+      <categories>
+        <category>工具与组件</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>内存分析</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>关于Myeclipse2017 MemoryAnalyzer的安装</title>
+    <url>/2025/08/06/MAT_Install/</url>
+    <content><![CDATA[<p>最近想要安装MemoryAnalyzer（MAT）这个性能分析工具的插件，本以为网上教程那么多，教我一个技术一般的人足够了，我安装的是Myeclipse2017，可是在网上翻了一圈，大多数的Myeclipse教程都是10版本的，我呢，不想在论坛上问（没耐心…）,突然想到了自己当初装svn插件时的事情，类比一下是不是也可以呢？步骤如下：</p>
+<span id="more"></span>
+
+<p>首先下载MemoryAnalyzer插件（这个一样）<br><a href="http://www.eclipse.org/mat/downloads.php">http://www.eclipse.org/mat/do...</a><br>点击Archived Update Site后面的压缩包</p>
+<img src="/2025/08/06/MAT_Install/bVbczqP.webp" class="" title="说明">
+
+<p>解压之后如图：</p>
+<img src="/2025/08/06/MAT_Install/bVbczrl.webp" class="" title="说明">
+<p>将feature与binary中的文件拷入myeclipse的feature中，将plugins中的文件拷入myeclipse的plugins中，然后<br>重启myeclipse<br>如下图</p>
+<img src="/2025/08/06/MAT_Install/bVbczrP.webp" class="" title="说明">
+<p>表示安装成功。<br>进入windows-preference中可以看到MemoryAnalyzer</p>
+]]></content>
+      <categories>
+        <category>工具与组件</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>内存分析</tag>
       </tags>
   </entry>
   <entry>
@@ -547,6 +266,31 @@
       </tags>
   </entry>
   <entry>
+    <title>关于mybatis分页工具异常的解决办法</title>
+    <url>/2025/08/06/%E5%85%B3%E4%BA%8Emybatis%E5%88%86%E9%A1%B5%E5%B7%A5%E5%85%B7%E5%BC%82%E5%B8%B8%E7%9A%84%E8%A7%A3%E5%86%B3%E5%8A%9E%E6%B3%95/</url>
+    <content><![CDATA[<p><em>异常名称：</em> <em><strong>Could not find method oninterface org.apache.ibatis.executor.statement.</strong></em></p>
+<p><strong>引起异常的原因：</strong></p>
+<p>在PagePlugins.java的代码中：</p>
+<p>3.4.0之前分页</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Intercepts(value =&#123;@Signature(type = StatementHandler.class, method = &quot;prepare&quot;,args = &#123;Connection.class&#125;)&#125;) //3.40之前的写法</span><br></pre></td></tr></table></figure>
+
+<span id="more"></span>
+
+<p>3.4.0之后分页</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Intercepts(value = &#123;@Signature(type = StatementHandler.class, method = &quot;prepare&quot;,</span><br><span class="line"> args = &#123;Connection.class,Integer.class&#125;)&#125;)  //3.40之后的写法</span><br></pre></td></tr></table></figure>
+
+<p><strong>多了一个Interger.class的参数</strong></p>
+<p>原链接：<a href="http://www.cnblogs.com/EasonJim/p/7056700.html">http://www.cnblogs.com/EasonJim/p/7056700.html</a></p>
+]]></content>
+      <categories>
+        <category>mybatis</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>分页</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>项目的一点总结</title>
     <url>/2025/08/06/%E9%A1%B9%E7%9B%AE%E7%9A%84%E4%B8%80%E7%82%B9%E6%80%BB%E7%BB%93/</url>
     <content><![CDATA[<p>项目名称：后勤保障指挥系统<br>项目部署环境：银河麒麟系统+myEclipse+mySql5.6+tomcat7+rabbitmq+基于ssm的公司框架+sip协议<br>启动方式：<br>        启功sip服务器：cd &#x2F;home&#x2F;wisdom&#x2F;build_mpms&#x2F;bin,.&#x2F;start.sh脚本一键全启，第一次开启需要chmod +x +脚本&#x2F;文件名称 进行授权。</p>
@@ -596,31 +340,6 @@ if(simpleIdList.size() != 0)&#123;
         <tag>linux</tag>
         <tag>ssm</tag>
         <tag>rabbitmq</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>关于mybatis分页工具异常的解决办法</title>
-    <url>/2025/08/06/%E5%85%B3%E4%BA%8Emybatis%E5%88%86%E9%A1%B5%E5%B7%A5%E5%85%B7%E5%BC%82%E5%B8%B8%E7%9A%84%E8%A7%A3%E5%86%B3%E5%8A%9E%E6%B3%95/</url>
-    <content><![CDATA[<p><em>异常名称：</em> <em><strong>Could not find method oninterface org.apache.ibatis.executor.statement.</strong></em></p>
-<p><strong>引起异常的原因：</strong></p>
-<p>在PagePlugins.java的代码中：</p>
-<p>3.4.0之前分页</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Intercepts(value =&#123;@Signature(type = StatementHandler.class, method = &quot;prepare&quot;,args = &#123;Connection.class&#125;)&#125;) //3.40之前的写法</span><br></pre></td></tr></table></figure>
-
-<span id="more"></span>
-
-<p>3.4.0之后分页</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Intercepts(value = &#123;@Signature(type = StatementHandler.class, method = &quot;prepare&quot;,</span><br><span class="line"> args = &#123;Connection.class,Integer.class&#125;)&#125;)  //3.40之后的写法</span><br></pre></td></tr></table></figure>
-
-<p><strong>多了一个Interger.class的参数</strong></p>
-<p>原链接：<a href="http://www.cnblogs.com/EasonJim/p/7056700.html">http://www.cnblogs.com/EasonJim/p/7056700.html</a></p>
-]]></content>
-      <categories>
-        <category>mybatis</category>
-      </categories>
-      <tags>
-        <tag>java</tag>
-        <tag>分页</tag>
       </tags>
   </entry>
 </search>
